@@ -1,14 +1,17 @@
 from __future__ import annotations
 from typing import Dict
+from src.board import Board
 from src.player import Player
 from src.human import Human
+from src.otto import Otto
 from src.othello import Othello
 
 def main():
-    player_1: Player = Human(name='Black', color='B')
-    player_2: Player = Human(name='White', color='W')
+    board = Board()
+    player_1: Player = Otto(name='Black', color='B', board=board)
+    player_2: Player = Otto(name='White', color='W', board=board)
     players: Dict[str, Player] = {'B': player_1, 'W': player_2}
-    game = Othello(player_1, player_2)
+    game = Othello(player_1, player_2, board)
     print("Welcome to Othello!")
     print(game.board.print_board())
 
@@ -17,6 +20,7 @@ def main():
         if not game.new_turn(move):
             continue
         if game.detect_game_end():
+            print(game.board.print_board())
             print("Game over!")
             black_score, white_score = game.board.get_player_scores()
             if black_score > white_score:

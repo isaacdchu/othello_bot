@@ -4,11 +4,12 @@ Human player for Othello game.
 
 from __future__ import annotations
 
+from src.board import Board
 from src.player import Player
 
 class Human(Player):
-    def __init__(self, name: str, color: str):
-        super().__init__(name, color)
+    def __init__(self, name: str, color: str, board: Board):
+        super().__init__(name, color, board)
 
     def get_move(self) -> str:
         """

@@ -5,10 +5,19 @@ This class represents a player in the Othello game, including methods for making
 
 from __future__ import annotations
 
+from src.board import Board
+
 class Player:
-    def __init__(self, name: str, color: str) -> None:
+    def __init__(self, name: str, color: str, board: Board) -> None:
+        if color not in ['B', 'W']:
+            raise ValueError("Color must be 'B' for Black or 'W' for White.")
+        if not isinstance(board, Board):
+            raise TypeError("board must be an instance of Board.")
+        if not name:
+            raise ValueError("Name cannot be empty.")
         self.name = name
         self.color = color  # 'B' for Black, 'W' for White
+        self.board = board
         self.score: int = 0
 
     def __str__(self) -> str:

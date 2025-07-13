@@ -9,14 +9,13 @@ from src.board import Board
 from src.player import Player
 
 class Othello:
-    def __init__(self, player_1: Player, player_2: Player):
-        self.board = Board()
+    def __init__(self, player_1: Player, player_2: Player, board: Board):
+        self.board = board
         self.players = {
             'B': player_1,
             'W': player_2
         }
         self.current_player = 'B'  # Black starts first
-        self.invalid_moves: Dict[str, None] = {}
 
     def __str__(self) -> str:
         return str(self.board)
@@ -49,9 +48,6 @@ class Othello:
         move = move.lower().strip()[:2]
         if move == 'qu':
             raise KeyboardInterrupt
-        if move in self.invalid_moves:
-            print("Invalid move. Try again.")
-            return False
         if move[0] not in 'abcdefgh' or move[1] not in '12345678':
             print("Invalid move format. Use letters a-h and numbers 1-8.")
             return False
@@ -59,7 +55,6 @@ class Othello:
         if not self.board.make_move(self.current_player, row, col):
             print("Invalid move. Try again.")
             return False
-        self.invalid_moves[move] = None
         self.__update_scores()
         print(f"Player {self.current_player} made a move at {move}.")
         self.__switch_player()
