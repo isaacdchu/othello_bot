@@ -46,7 +46,7 @@ class Otto(Player):
         maximizing = self.color == 'B'
         for move in valid_moves:
             hypothetical_board = self.board.hypothetical_move(move)
-            options[move] = self.minimax(hypothetical_board, 3, not maximizing)
+            options[move] = self.minimax(hypothetical_board, 5, not maximizing)
         print(f"Otto's ({self.color}) options: {options}")
         if not options:
             raise ValueError(f"No valid moves for color {self.color}")

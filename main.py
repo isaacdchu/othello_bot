@@ -8,7 +8,7 @@ from src.othello import Othello
 
 def main():
     board = Board()
-    player_1: Player = Human(name='Black', color='B', board=board)
+    player_1: Player = Otto(name='Black', color='B', board=board)
     player_2: Player = Otto(name='White', color='W', board=board)
     players: Dict[str, Player] = {'B': player_1, 'W': player_2}
     game = Othello(player_1, player_2, board)
