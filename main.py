@@ -8,7 +8,7 @@ from src.othello import Othello
 
 def main():
     board = Board()
-    player_1: Player = Otto(name='Black', color='B', board=board)
+    player_1: Player = Human(name='Black', color='B', board=board)
     player_2: Player = Otto(name='White', color='W', board=board)
     players: Dict[str, Player] = {'B': player_1, 'W': player_2}
     game = Othello(player_1, player_2, board)
@@ -16,10 +16,10 @@ def main():
     print(game.board.print_board())
 
     while True:
-        move = players[game.current_player].get_move()
+        move = players[game.board.current_player].get_move()
         if not game.new_turn(move):
             continue
-        if game.detect_game_end():
+        if game.detect_game_over():
             print(game.board.print_board())
             print("Game over!")
             black_score, white_score = game.board.get_player_scores()
