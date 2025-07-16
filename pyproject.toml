@@ -5,6 +5,7 @@ description = "Machine learning for playing Othello"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "numpy>=2.3.1",
     "pydantic>=2.11.7",
     "pyyaml>=6.0.2",
 ]
