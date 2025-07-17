@@ -1,11 +1,16 @@
-from __future__ import annotations
-from typing import List, Optional
+from typing import Dict, List, Set, Tuple, Optional
 import numpy as np
 from src.config_handler import get_config
 
 class Board:
+    DIRECTIONS = [(-1, -1), (-1, 0), (-1, 1),
+                  (0, -1),          (0, 1),
+                  (1, -1),  (1, 0), (1, 1)]
     def __init__(self):
+        # Black's pieces are represented by self.state[0] to begin
         self.state: np.ndarray = Board.__convert_to_state(get_config("config.yaml").board.starting_position)
+        # Stores the set of empty squares that neighbor an opponent's piece
+        self.potential_moves: Tuple[Set[Tuple[int, int]], Set[Tuple[int, int]]] = Board.__initialize_potential_moves(self.state)
 
     def pretty_print(self, coords: bool = False) -> None:
         board_repr: List[List[str]] = []
@@ -20,10 +25,10 @@ class Board:
                     row.append('.')
             board_repr.append(row)
         if coords:
-            # Print rows with numbers (1 at top) and column letters (a-h) at the bottom
+            # Print rows with indices (0 at top) and column indices (0-7) at the bottom
             for idx, row in enumerate(board_repr):
-                print(f"{idx + 1} " + ' '.join(row))
-            col_labels: str = '  ' + ' '.join([chr(ord('a') + j) for j in range(8)])
+                print(f"{idx} " + ' '.join(row))
+            col_labels: str = '  ' + ' '.join([str(j) for j in range(8)])
             print(col_labels)
         else:
             for row in board_repr:
@@ -41,3 +46,22 @@ class Board:
                     white[i, j] = 1.0
         state: np.ndarray = np.array([black, white], dtype=np.float32)
         return state
+    
+    @staticmethod
+    def __initialize_potential_moves(state: np.ndarray) -> Tuple[Set[Tuple[int, int]], Set[Tuple[int, int]]]:
+        black_potential: Set[Tuple[int, int]] = set()
+        white_potential: Set[Tuple[int, int]] = set()
+        all_pieces: np.ndarray = state[0] + state[1]
+        for i in range(8):
+            for j in range(8):
+                if all_pieces[i, j] != 0:
+                    continue
+                for di, dj in Board.DIRECTIONS:
+                    ni, nj = i + di, j + dj
+                    if ni < 0 or ni >= 8 or nj < 0 or nj >= 8:
+                        continue
+                    if state[1, ni, nj] > 0:
+                        black_potential.add((i, j))
+                    if state[0, ni, nj] > 0:
+                        white_potential.add((i, j))
+        return black_potential, white_potential
