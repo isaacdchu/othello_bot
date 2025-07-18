@@ -6,7 +6,8 @@ class Board:
     DIRECTIONS = [(-1, -1), (-1, 0), (-1, 1),
                   (0, -1),          (0, 1),
                   (1, -1),  (1, 0), (1, 1)]
-    def __init__(self):
+    def __init__(self, size: int = 8) -> None:
+        self.size: int = size
         # Black's pieces are represented by self.state[0] to begin
         self.state: np.ndarray = Board.__convert_to_state(get_config("config.yaml").board.starting_position)
         # Stores the set of all empty squares
@@ -18,6 +19,17 @@ class Board:
         self.game_over: bool = False
         self.num_pieces: int = int(self.state.sum())
         self.current_player: int = 0 # 0 for black, 1 for white
+
+    def copy(self) -> 'Board':
+        """Create a deep copy of the board."""
+        new_board = Board(size=self.size)
+        new_board.state = self.state.copy()
+        new_board.empty_squares = self.empty_squares.copy()
+        new_board.legal_moves = self.legal_moves.copy()
+        new_board.game_over = self.game_over
+        new_board.num_pieces = self.num_pieces
+        new_board.current_player = self.current_player
+        return new_board
 
     def __opponent_has_legal_moves(self) -> bool:
         # Check if the opponent has any legal moves
@@ -68,6 +80,17 @@ class Board:
                     break
                 break
         return False
+    
+    def get_winner(self) -> Optional[int]:
+        if not self.game_over:
+            return None
+        black_score, white_score = self.get_scores()
+        if black_score > white_score:
+            return 0
+        elif white_score > black_score:
+            return 1
+        else:
+            return None
 
     def make_move(self, move: Tuple[int, int]) -> None:
         # Assumes that the move is legal
@@ -137,9 +160,9 @@ class Board:
         for i, row in enumerate(board):
             for j, cell in enumerate(row):
                 if cell == 'B':
-                    black[i, j] = 1.0
+                    black[i, j] = np.float32(1.0)
                 elif cell == 'W':
-                    white[i, j] = 1.0
+                    white[i, j] = np.float32(1.0)
         state: np.ndarray = np.array([black, white], dtype=np.float32)
         return state
     
@@ -147,7 +170,6 @@ class Board:
         occupied = self.state[0] + self.state[1]  # sum over channels
         empty_mask = occupied == 0.0
         self.empty_squares = set(zip(*np.where(empty_mask)))
-
 
     def __update_legal_moves(self) -> None:
         # Assumes that self.state is up to date
