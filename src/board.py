@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import List, Set, Tuple, Optional
 import numpy as np
 from src.config_handler import get_config
@@ -20,7 +21,32 @@ class Board:
         self.num_pieces: int = int(self.state.sum())
         self.current_player: int = 0 # 0 for black, 1 for white
 
-    def copy(self) -> 'Board':
+    def __str__(self) -> str:
+        """String representation of the board."""
+        symbols = {0: "●", 1: "○", -1: " "}
+        rows = []
+        for i in range(self.size):
+            row = "|" + "|".join(
+                symbols[
+                    0 if self.state[0, i, j] == 1.0 else 1 if self.state[1, i, j] == 1.0 else -1
+                ].center(3)
+                for j in range(self.size)
+            )
+            rows.append(f"{row}|")
+        return "\n".join(rows)
+    
+    def __hash__(self) -> int:
+        """Hash function for the board state."""
+        return hash(self.state.tobytes())
+    
+    def __eq__(self, other: object) -> bool:
+        """Equality check for the board state."""
+        if not isinstance(other, Board):
+            return False
+        return np.array_equal(self.state, other.state) and \
+               self.current_player == other.current_player
+
+    def copy(self) -> Board:
         """Create a deep copy of the board."""
         new_board = Board(size=self.size)
         new_board.state = self.state.copy()
@@ -34,8 +60,20 @@ class Board:
     def __opponent_has_legal_moves(self) -> bool:
         # Check if the opponent has any legal moves
         for move in self.empty_squares:
-            if self.__check_legal_move(move):
-                return True
+            for di, dj in Board.DIRECTIONS:
+                ni, nj = move[0] + di, move[1] + dj
+                found_current_player = False
+                while 0 <= ni < 8 and 0 <= nj < 8:
+                    if self.state[0, ni, nj] > 0:
+                        found_current_player = True
+                        ni += di
+                        nj += dj
+                        continue
+                    if self.state[1, ni, nj] > 0:
+                        if found_current_player:
+                            return True
+                        break
+                    break
         return False
 
     def __detect_game_over(self) -> None:
@@ -82,6 +120,7 @@ class Board:
         return False
     
     def get_winner(self) -> Optional[int]:
+        """Returns the winner of the game (0 for black, 1 for white), or None if it's a draw."""
         if not self.game_over:
             return None
         black_score, white_score = self.get_scores()
@@ -91,6 +130,10 @@ class Board:
             return 1
         else:
             return None
+
+    def evaluate(self) -> np.float32:
+        """Evaluates the board state for the current player."""
+        return np.float32((self.state[0] - self.state[1]).sum() / 64.0)
 
     def make_move(self, move: Tuple[int, int]) -> None:
         # Assumes that the move is legal
@@ -125,9 +168,13 @@ class Board:
         self.__detect_game_over()
     
     def get_scores(self) -> Tuple[int, int]:
-        # Returns the scores of both players
-        black_score = int(self.state[0].sum())
-        white_score = int(self.state[1].sum())
+        # Returns the scores of both players in (black_score, white_score) format
+        if self.current_player == 0:
+            black_score = int(self.state[0].sum())
+            white_score = int(self.state[1].sum())
+        else:
+            white_score = int(self.state[0].sum())
+            black_score = int(self.state[1].sum())
         return black_score, white_score
 
     def pretty_print(self, coords: bool = True) -> None:

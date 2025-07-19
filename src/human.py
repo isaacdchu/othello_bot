@@ -7,11 +7,11 @@ from src.player import Player
 from src.board import Board
 
 class Human(Player):
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, player_id: int) -> None:
         """
         Initializes a human player with a given name.
         """
-        super().__init__(name)
+        super().__init__(name, player_id)
 
     def get_move(self, board: Board) -> Tuple[int, int]:
         """
