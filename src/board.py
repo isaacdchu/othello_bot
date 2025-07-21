@@ -20,20 +20,6 @@ class Board:
         self.game_over: bool = False
         self.num_pieces: int = int(self.state.sum())
         self.current_player: int = 0 # 0 for black, 1 for white
-
-    def __str__(self) -> str:
-        """String representation of the board."""
-        symbols = {0: "●", 1: "○", -1: " "}
-        rows = []
-        for i in range(self.size):
-            row = "|" + "|".join(
-                symbols[
-                    0 if self.state[0, i, j] == 1.0 else 1 if self.state[1, i, j] == 1.0 else -1
-                ].center(3)
-                for j in range(self.size)
-            )
-            rows.append(f"{row}|")
-        return "\n".join(rows)
     
     def __hash__(self) -> int:
         """Hash function for the board state."""
@@ -214,8 +200,8 @@ class Board:
         return state
     
     def __initialize_empty_squares(self) -> None:
-        occupied = self.state[0] + self.state[1]  # sum over channels
-        empty_mask = occupied == 0.0
+        occupied: np.ndarray = self.state[0] + self.state[1]  # sum over channels
+        empty_mask: np.ndarray = occupied == 0.0
         self.empty_squares = set(zip(*np.where(empty_mask)))
 
     def __update_legal_moves(self) -> None:

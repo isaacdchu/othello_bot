@@ -38,11 +38,11 @@ class Otto(Player):
             return 1 # All first moves are equal
         # Opening: very few pieces, less simulations
         if num_pieces <= 10:
-            return max(50, int(500 / self.num_workers))
+            return int(500 // self.num_workers)
         # Endgame: almost full board, less simulations
         elif num_pieces >= 54:
-            return max(75, int(750 / self.num_workers))
+            return int(750 // self.num_workers)
         # Midgame: most simulations
         else:
             # Perform 1000 simulations for midgame
-            return max(100, int(1000 / self.num_workers))
+            return int(1000 // self.num_workers)
