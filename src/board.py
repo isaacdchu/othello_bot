@@ -4,9 +4,7 @@ import numpy as np
 from src.config_handler import get_config
 
 class Board:
-    DIRECTIONS = [(-1, -1), (-1, 0), (-1, 1),
-                  (0, -1),          (0, 1),
-                  (1, -1),  (1, 0), (1, 1)]
+    DIRECTIONS: Tuple[Tuple[int, int], ...] = ((-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1))
     def __init__(self, size: int = 8) -> None:
         self.size: int = size
         # Black's pieces are represented by self.state[0] to begin
