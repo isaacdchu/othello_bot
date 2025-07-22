@@ -1,7 +1,13 @@
 # othello_bot
 Machine learning for playing Othello
 
-# Game Representation
-- Two 2D arrays, one for each player
-    - 1 if that player has a piece there, 0 else
-- 
+# Setup
+```bash
+git clone https://github.com/isaacdchu/othello_bot.git
+```
+```bash
+cd othello_bot
+```
+```bash
+uv run main.py
+```
