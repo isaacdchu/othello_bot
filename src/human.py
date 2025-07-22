@@ -26,6 +26,8 @@ class Human(Player):
         while True:
             try:
                 move = input(f"{self.name}, enter your move (row col): ").strip()
+                if move == "exit" or move == "quit":
+                    raise KeyboardInterrupt("Game terminated by user.")
                 row, col = map(int, move.split())
                 if (row, col) in board.legal_moves:
                     return row, col
