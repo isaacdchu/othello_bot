@@ -27,7 +27,8 @@ class Otto(Player):
                 move = list(node.children.keys())[-1]
                 node = node.children[move]
             # Rollout: simulate from this node
-            node.parallel_rollout(num_rollouts=self.num_workers)
+            node.rollout()
+            # node.parallel_rollout(num_rollouts=self.num_workers)
         # Choose the move with the highest visit count
         best_move = max(root.children.items(), key=lambda item: item[1].visit_count)[0]
         return best_move
@@ -38,11 +39,11 @@ class Otto(Player):
             return 1 # All first moves are equal
         # Opening: very few pieces, less simulations
         if num_pieces <= 10:
-            return int(500 // self.num_workers)
+            return 500
         # Endgame: almost full board, less simulations
         elif num_pieces >= 54:
-            return int(750 // self.num_workers)
+            return 750
         # Midgame: most simulations
         else:
             # Perform 1000 simulations for midgame
-            return int(1000 // self.num_workers)
+            return 1000

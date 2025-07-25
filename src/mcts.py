@@ -35,7 +35,6 @@ class MCTSNode:
                  board: Board, 
                  root_player: int, 
                  parent: Optional[MCTSNode] = None, 
-                 transposition_table: Optional[Dict[int, MCTSNode]] = None
                  ) -> None:
         self.board: Board = board # The board state at this node, should not be modified
         self.root_player: int = root_player # The player who we want the best move for (0 for black, 1 for white)
@@ -44,7 +43,6 @@ class MCTSNode:
         self.untried_moves: Set[Tuple[int, int]] = board.legal_moves.copy()
         self.visit_count: int = 0
         self.value_sum: np.float32 = np.float32(0.0)
-        self.transposition_table: Dict[int, MCTSNode] = {hash(self.board): self} if transposition_table is None else transposition_table
 
     def select_child(self, c: np.float32 = np.float32(1.4)) -> MCTSNode:
         children: List[MCTSNode] = list(self.children.values())
@@ -67,11 +65,7 @@ class MCTSNode:
         move = self.untried_moves.pop()
         new_board: Board = self.board.copy()
         new_board.make_move(move)
-        board_hash: int = hash(new_board)
-        if board_hash in self.transposition_table:
-            self.children[move] = self.transposition_table[board_hash]
-        else:
-            self.children[move] = MCTSNode(new_board, self.root_player, self, self.transposition_table)
+        self.children[move] = MCTSNode(new_board, self.root_player, self)
 
     def is_fully_expanded(self) -> bool:
         return len(self.children) == len(self.board.legal_moves)
@@ -82,6 +76,7 @@ class MCTSNode:
             if board.game_over:
                 break
             legal_moves = list(board.legal_moves)
+            # Policy: choose a random legal move
             move = random.choice(legal_moves)
             board.make_move(move)
         self.backpropagate(self.heuristic_value(board.get_winner()))
