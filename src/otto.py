@@ -1,9 +1,25 @@
 from typing import Tuple
 from os import cpu_count
 import numpy as np
+from multiprocessing import Pool
 from src.player import Player
 from src.board import Board
 from src.mcts import MCTSNode
+
+# This function simulates a number of games from the current board state
+def simulate_worker(args):
+    board, player_id, simulations_per_worker, c = args
+    local_root = MCTSNode(board, root_player=player_id)
+    for _ in range(simulations_per_worker):
+        node = local_root
+        while node.is_fully_expanded() and not node.is_terminal():
+            node = node.select_child(c=c)
+        if not node.is_terminal() and not node.is_fully_expanded():
+            node.expand()
+            move = list(node.children.keys())[-1]
+            node = node.children[move]
+        node.rollout()
+    return local_root
 
 class Otto(Player):
     def __init__(self, name: str, player_id: int, c: float | np.float32 = 1.4, num_workers: int = 1) -> None:
@@ -14,21 +30,24 @@ class Otto(Player):
     def get_move(self, board: Board) -> Tuple[int, int]:
         if len(board.legal_moves) == 1:
             return next(iter(board.legal_moves))
+        
         root = MCTSNode(board, root_player=self.player_id)
-        for _ in range(self.__calculate_simulation_count(board.num_pieces)):  # Number of simulations
-            node = root
-            # Selection: traverse down the tree using UCT until a node with untried moves or terminal
-            while node.is_fully_expanded() and not node.is_terminal():
-                node = node.select_child(c=self.c)
-            # Expansion: expand one child if possible
-            if not node.is_terminal() and not node.is_fully_expanded():
-                node.expand()
-                # After expansion, move to the newly added child
-                move = list(node.children.keys())[-1]
-                node = node.children[move]
-            # Rollout: simulate from this node
-            node.rollout()
-            # node.parallel_rollout(num_rollouts=self.num_workers)
+        num_simulations = self.__calculate_simulation_count(board.num_pieces)
+        simulations_per_worker = max(num_simulations // self.num_workers, 1)
+
+        # Use multiprocessing to parallelize the simulation
+        with Pool(processes=self.num_workers) as pool:
+            results = pool.map(simulate_worker, [(board, self.player_id, simulations_per_worker, self.c)] * self.num_workers)
+
+        # Merge the results from all workers into the root node
+        for local_root in results:
+            for move, child in local_root.children.items():
+                if move not in root.children:
+                    root.children[move] = child
+                else:
+                    root.children[move].visit_count += child.visit_count
+                    root.children[move].value_sum += child.value_sum
+
         # Choose the move with the highest visit count
         best_move = max(root.children.items(), key=lambda item: item[1].visit_count)[0]
         return best_move

@@ -10,7 +10,8 @@ def main() -> None:
     board: Board = Board()
     # player_1: Player = Human("Player 1", player_id=0)
     player_1: Player = Otto("Player 1", player_id=0, c=1.2, num_workers=10)
-    player_2: Player = Otto("Player 2", player_id=1, c=1.2, num_workers=10)
+    # player_2: Player = Otto("Player 2", player_id=1, c=1.2, num_workers=10)
+    player_2: Player = Randobot("Player 2", player_id=1)
     players: Dict[int, Player] = {0: player_1, 1: player_2}
     colors: Dict[int, str] = {0: "Black", 1: "White"}
     current_player: Player = player_1
