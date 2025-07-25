@@ -1,5 +1,4 @@
 from typing import Tuple
-from os import cpu_count
 import numpy as np
 from multiprocessing import Pool
 from src.player import Player
@@ -7,16 +6,16 @@ from src.board import Board
 from src.mcts import MCTSNode
 
 # This function simulates a number of games from the current board state
-def simulate_worker(args):
+def build_tree(args) -> MCTSNode:
     board, player_id, simulations_per_worker, c = args
     local_root = MCTSNode(board, root_player=player_id)
     for _ in range(simulations_per_worker):
-        node = local_root
+        node: MCTSNode = local_root
         while node.is_fully_expanded() and not node.is_terminal():
             node = node.select_child(c=c)
         if not node.is_terminal() and not node.is_fully_expanded():
             node.expand()
-            move = list(node.children.keys())[-1]
+            move: Tuple[int, int] = list(node.children.keys())[-1]
             node = node.children[move]
         node.rollout()
     return local_root
@@ -37,7 +36,7 @@ class Otto(Player):
 
         # Use multiprocessing to parallelize the simulation
         with Pool(processes=self.num_workers) as pool:
-            results = pool.map(simulate_worker, [(board, self.player_id, simulations_per_worker, self.c)] * self.num_workers)
+            results = pool.map(build_tree, [(board, self.player_id, simulations_per_worker, self.c)] * self.num_workers)
 
         # Merge the results from all workers into the root node
         for local_root in results:

@@ -1,34 +1,9 @@
 
 from __future__ import annotations
 from typing import Dict, List, Optional, Set, Tuple
-import concurrent.futures
-from os import cpu_count
 import numpy as np
 import random
 from src.board import Board
-
-def single_rollout(args) -> np.float32:
-    board, root_player, depth = args
-    board = board.copy()
-    for _ in range(depth):
-        if board.game_over:
-            break
-        legal_moves: List[Tuple[int, int]] = list(board.legal_moves)
-        move = random.choice(legal_moves)
-        board.make_move(move)
-    return heuristic_value(board, board.get_winner(), root_player)
-
-def heuristic_value(board: Board, winner: Optional[int], root_player: int) -> np.float32:
-        """Returns the heuristic value of the board state for the root player."""
-        # Root player's pieces - opponent's pieces
-        piece_difference: np.float32 = board.evaluate() * np.float32(1.0 if board.current_player == root_player else -1.0)
-        # Game progress weight (early vs late game). Score matters more in the late game.
-        score_weight: np.float32 = np.float32(board.num_pieces / 64.0) # ranges from 0.0 to 1.0
-        # +1 if the root player is the winner, -1 if the opponent is the winner, 0 if it's a draw
-        outcome_value: np.float32 = np.float32(0.0) # ranges from -1.0 to 1.0
-        if winner is not None:
-            outcome_value = np.float32(1.0 if winner == root_player else -1.0)
-        return np.float32(piece_difference * score_weight + outcome_value * (1.0 - score_weight))
 
 class MCTSNode:
     def __init__(self, 
@@ -80,13 +55,6 @@ class MCTSNode:
             move = random.choice(legal_moves)
             board.make_move(move)
         self.backpropagate(self.heuristic_value(board.get_winner()))
-
-    def parallel_rollout(self, num_rollouts: int, depth: int = 64) -> None:
-        args = [(self.board.copy(), self.root_player, depth) for _ in range(num_rollouts)]
-        with concurrent.futures.ProcessPoolExecutor(max_workers=cpu_count()) as executor:
-            results = list(executor.map(single_rollout, args))
-        for value in results:
-            self.backpropagate(value)
 
     def backpropagate(self, value: np.float32) -> None:
         node: Optional[MCTSNode] = self
