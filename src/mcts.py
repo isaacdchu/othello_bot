@@ -54,7 +54,8 @@ class MCTSNode:
             # Policy: choose a random legal move
             move = random.choice(legal_moves)
             board.make_move(move)
-        self.backpropagate(self.heuristic_value(board.get_winner()))
+        self.backpropagate(self.heuristic_value2(board.get_winner()))
+        # self.backpropagate(self.heuristic_value(board.get_winner()))
 
     def backpropagate(self, value: np.float32) -> None:
         node: Optional[MCTSNode] = self
@@ -73,7 +74,13 @@ class MCTSNode:
         # Game progress weight (early vs late game). Score matters more in the late game.
         score_weight: np.float32 = np.float32(self.board.num_pieces / 64.0) # ranges from 0.0 to 1.0
         # +1 if the root player is the winner, -1 if the opponent is the winner, 0 if it's a draw
-        outcome_value: np.float32 = np.float32(0.0) # ranges from -1.0 to 1.0
+        outcome_value: np.float32 = np.float32(0.0) # element of -1.0, 0.0, 1.0
         if winner is not None:
             outcome_value = np.float32(1.0 if winner == self.root_player else -1.0)
         return np.float32(piece_difference * score_weight + outcome_value * (1.0 - score_weight))
+    
+    def heuristic_value2(self, winner: Optional[int]) -> np.float32:
+        outcome_value: np.float32 = np.float32(0.0) # element of -1.0, 0.0, 1.0
+        if winner is not None:
+            outcome_value = np.float32(1.0 if winner == self.root_player else -1.0)
+        return outcome_value
