@@ -43,9 +43,9 @@ class Otto(Player):
             for move, child in local_root.children.items():
                 if move not in root.children:
                     root.children[move] = child
-                else:
-                    root.children[move].visit_count += child.visit_count
-                    root.children[move].value_sum += child.value_sum
+                    continue
+                root.children[move].visit_count += child.visit_count
+                root.children[move].value_sum += child.value_sum
 
         # Choose the move with the highest visit count
         best_move = max(root.children.items(), key=lambda item: item[1].visit_count)[0]
@@ -57,11 +57,9 @@ class Otto(Player):
             return 1 # All first moves are equal
         # Opening: very few pieces, less simulations
         if num_pieces <= 10:
-            return 500
+            return 2000
         # Endgame: almost full board, less simulations
-        elif num_pieces >= 54:
-            return 750
+        if num_pieces >= 54:
+            return 3000
         # Midgame: most simulations
-        else:
-            # Perform 1000 simulations for midgame
-            return 1000
+        return 4000
