@@ -31,8 +31,6 @@ class BoardConfig(BaseModel):
                 raise ValueError("Cells must be None, 'B', or 'W'.")
         return value
 
-    
-
 class Config(BaseModel):
     board: BoardConfig
 
