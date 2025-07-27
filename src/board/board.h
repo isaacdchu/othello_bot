@@ -20,7 +20,7 @@ public:
     Board(State initial_state);
     void pretty_print() const;
     Board deep_copy() const;
-    void make_move(uint64_t move, bool for_player);
+    void make_move(uint64_t move);
     uint64_t get_legal_moves() const;
     bool get_current_player() const;
     bool is_game_over() const;
@@ -31,6 +31,8 @@ private:
     uint64_t legal_moves;
     bool game_over;
     void update_legal_moves();
+    uint64_t legal_moves_edges(const uint64_t& empty_squares, const uint64_t& player, const uint64_t& opponent) const;
+    uint64_t legal_moves_diagonals(const uint64_t& empty_squares, const uint64_t& player, const uint64_t& opponent) const;
 };
 
 #endif // BOARD_H
