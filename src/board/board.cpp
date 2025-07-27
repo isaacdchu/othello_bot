@@ -1,11 +1,13 @@
 #include "board.h"
 #define ONE uint64_t(1) // Guarantees that ONE is a 64-bit unsigned integer
 
-Board::Board(State initial_state) {
+Board::Board(State initial_state, bool current_player) {
     state = initial_state;
-    current_player = true; // Start with black
+    this->current_player = current_player;
     update_legal_moves();
-    game_over = false; // This should be determined based on the initial state
+    game_over = false;
+    detect_game_over();
+    this->current_player = current_player; // Restore the current player after detecting game over
 }
 
 void Board::pretty_print() const {
@@ -50,18 +52,7 @@ void Board::make_move(uint64_t move) {
     if (~(state.black + state.white) == 0) {
         game_over = true; // No empty squares left, game is over
     }
-    // Switch current player
-    current_player = !current_player;
-    // Update legal moves and check for game over
-    update_legal_moves();
-    if (legal_moves == 0) {
-        // Pass back turn
-        current_player = !current_player; // Switch back to the other player
-        update_legal_moves();
-        if (legal_moves == 0) {
-            game_over = true; // If both players have no legal moves, the game is over
-        }
-    }
+    detect_game_over(); // Update game state
 }
 
 uint64_t Board::get_legal_moves() const {
@@ -82,6 +73,22 @@ void Board::update_legal_moves() {
     uint64_t &player = current_player ? state.black : state.white;
     uint64_t &opponent = current_player ? state.white : state.black;
     legal_moves = legal_moves_edges(empty_squares, player, opponent) | legal_moves_diagonals(empty_squares, player, opponent);
+}
+
+void Board::detect_game_over() {
+    // Updates game_over and current_player based on the current state
+    const uint64_t current_legal_moves = legal_moves;
+    current_player = !current_player; // Switch player
+    update_legal_moves(); // Update legal moves for the new current player
+    if (legal_moves != 0) {
+        return; // If there are legal moves, the game is not over
+    }
+    current_player = !current_player; // Switch back if no legal moves for the other player
+    if (current_legal_moves != 0) {
+        legal_moves = current_legal_moves; // Restore legal moves
+        return; // Enemy passes their turn, so the game is not over
+    }
+    game_over = true; // No legal moves for both players, game is over
 }
 
 uint64_t Board::legal_moves_edges(const uint64_t& empty, const uint64_t& player, const uint64_t& opponent) const {
