@@ -5,9 +5,11 @@ Board::Board(State initial_state, bool current_player) {
     state = initial_state;
     this->current_player = current_player;
     update_legal_moves();
+    uint64_t temp_legal_moves = legal_moves;
     game_over = false;
     detect_game_over();
     this->current_player = current_player; // Restore the current player after detecting game over
+    this->legal_moves = temp_legal_moves; // Restore legal moves after game over detection
 }
 
 void Board::pretty_print() const {
@@ -44,10 +46,10 @@ void Board::make_move(uint64_t move) {
     // Updates state, current_player, legal_moves, and game_over accordingly
     uint64_t &player = current_player ? state.black : state.white;
     uint64_t &opponent = current_player ? state.white : state.black;
-    player |= move; // Place the piece for the current player
     // Flip opponent's pieces in each direction
     uint64_t empty_squares = ~(state.black | state.white);
     flip_pieces(move, player, opponent, empty_squares);
+    player |= move; // Place the piece for the current player
     // Check for full board
     if (~(state.black + state.white) == 0) {
         game_over = true; // No empty squares left, game is over
@@ -157,31 +159,26 @@ uint64_t Board::legal_moves_diagonals(const uint64_t& empty_squares, const uint6
 
 void Board::flip_pieces(const uint64_t& move, uint64_t& player, uint64_t& opponent, const uint64_t&) {
     // Masks for board edges
-    const uint64_t row1 = 0x00000000000000FFULL;
-    const uint64_t row2 = 0x000000000000FF00ULL;
-    const uint64_t row7 = 0x00FF000000000000ULL;
-    const uint64_t row8 = 0xFF00000000000000ULL;
-    const uint64_t notA = 0xfefefefefefefefeULL;
-    const uint64_t notAB = 0xfcfcfcfcfcfcfcfcULL;
-    const uint64_t notH = 0x7f7f7f7f7f7f7f7fULL;
-    const uint64_t notGH = 0x3f3f3f3f3f3f3f3fULL;
+    const uint64_t fileA = 0x0101010101010101ULL;
+    const uint64_t fileH = 0x8080808080808080ULL;
+    const uint64_t row1  = 0x00000000000000FFULL;
+    const uint64_t row8  = 0xFF00000000000000ULL;
 
     struct Dir {
         int shift;
-        uint64_t skip_mask; // If move & skip_mask, skip this direction
-        uint64_t border_mask; // Used to prevent wrap during shifting
+        uint64_t skip_mask;
+        uint64_t border_mask;
     };
 
-    // Directions: N, S, E, W, NE, NW, SE, SW
     const Dir dirs[8] = {
-        {  8, row1 | row2, 0xFFFFFFFFFFFFFFFFULL }, // N
-        { -8, row7 | row8, 0xFFFFFFFFFFFFFFFFULL }, // S
-        {  1, notH & notGH, notH },                 // E
-        { -1, notA & notAB, notA },                 // W
-        {  9, (row1 | row2) | (notH & notGH), notH }, // NE
-        {  7, (row1 | row2) | (notA & notAB), notA }, // NW
-        { -7, (row7 | row8) | (notH & notGH), notH }, // SE
-        { -9, (row7 | row8) | (notA & notAB), notA }, // SW
+        {  8, row8, 0xFFFFFFFFFFFFFFFFULL }, // N
+        { -8, row1, 0xFFFFFFFFFFFFFFFFULL }, // S
+        {  1, fileH, 0xfefefefefefefefeULL }, // E
+        { -1, fileA, 0x7f7f7f7f7f7f7f7fULL }, // W
+        {  9, fileH | row8, 0xfefefefefefefefeULL }, // NE
+        {  7, fileA | row8, 0x7f7f7f7f7f7f7f7fULL }, // NW
+        { -7, fileH | row1, 0xfefefefefefefefeULL }, // SE
+        { -9, fileA | row1, 0x7f7f7f7f7f7f7f7fULL }, // SW
     };
 
     for (const auto& d : dirs) {

@@ -4,7 +4,7 @@ int main() {
     Player* player_1 = new Human("Player 1", true);
     Player* player_2 = new Human("Player 2", false);
     State initial_state = {0x810000000, 0x1008000000};
-    Board board(initial_state);
+    Board board(initial_state, true); // Start with black player
     while (!board.is_game_over()) {
         run_game(player_1, player_2, board);
     }
