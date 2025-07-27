@@ -33,6 +33,7 @@ private:
     void update_legal_moves();
     uint64_t legal_moves_edges(const uint64_t& empty_squares, const uint64_t& player, const uint64_t& opponent) const;
     uint64_t legal_moves_diagonals(const uint64_t& empty_squares, const uint64_t& player, const uint64_t& opponent) const;
+    void flip_pieces(const uint64_t& move, uint64_t& player, uint64_t& opponent, const uint64_t& empty_squares);
 };
 
 #endif // BOARD_H

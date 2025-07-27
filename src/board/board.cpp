@@ -41,7 +41,27 @@ void Board::make_move(uint64_t move) {
     // Assumes that the given move is valid
     // Updates state, current_player, legal_moves, and game_over accordingly
     uint64_t &player = current_player ? state.black : state.white;
-    player |= move;
+    uint64_t &opponent = current_player ? state.white : state.black;
+    player |= move; // Place the piece for the current player
+    // Flip opponent's pieces in each direction
+    uint64_t empty_squares = ~(state.black | state.white);
+    flip_pieces(move, player, opponent, empty_squares);
+    // Check for full board
+    if (~(state.black + state.white) == 0) {
+        game_over = true; // No empty squares left, game is over
+    }
+    // Switch current player
+    current_player = !current_player;
+    // Update legal moves and check for game over
+    update_legal_moves();
+    if (legal_moves == 0) {
+        // Pass back turn
+        current_player = !current_player; // Switch back to the other player
+        update_legal_moves();
+        if (legal_moves == 0) {
+            game_over = true; // If both players have no legal moves, the game is over
+        }
+    }
 }
 
 uint64_t Board::get_legal_moves() const {
@@ -64,93 +84,121 @@ void Board::update_legal_moves() {
     legal_moves = legal_moves_edges(empty_squares, player, opponent) | legal_moves_diagonals(empty_squares, player, opponent);
 }
 
-uint64_t Board::legal_moves_edges(const uint64_t& empty_squares, const uint64_t& player, const uint64_t& opponent) const {
-    uint64_t legal_moves_edges = 0;
-    // Moves where piece is placed north of an opponent's piece
-    uint64_t legal_moves_n = 0;
-    uint64_t mask_n = 0x00FFFFFFFFFFFF00;
-    // Get empty squares north of opponent's pieces
-    uint64_t potential_n = ((opponent & mask_n) >> 8) & empty_squares;
-    int shift = 16;
-    // Check that these moves capture at least one opponent's piece
-    while (potential_n != 0 && shift <= 56) {
-        // Check if the capture mask intersects with current player's pieces
-        uint64_t capture_mask = (potential_n << shift);
-        // If the capture mask intersects with player's pieces, it's a legal move
-        legal_moves_n |= ((capture_mask & player) >> shift);
-        // Remove these legal moves from potential_n
-        potential_n &= (~legal_moves_n);
-        // If we hit an empty square, remove it from potential_n
-        potential_n &= (~(capture_mask | empty_squares) >> shift);
-        shift += 8;
-    }
+uint64_t Board::legal_moves_edges(const uint64_t& empty, const uint64_t& player, const uint64_t& opponent) const {
+    uint64_t moves = 0;
+    // Directional masks to prevent wrapping
+    const uint64_t notA = 0xfefefefefefefefeULL;
+    const uint64_t notH = 0x7f7f7f7f7f7f7f7fULL;
 
-    // Moves where piece is placed south of an opponent's piece
-    uint64_t legal_moves_s = 0;
-    uint64_t mask_s = 0x00FFFFFFFFFFFF00;
-    // Get empty squares south of opponent's pieces
-    uint64_t potential_s = ((opponent & mask_s) << 8) & empty_squares;
-    shift = 16;
-    // Check that these moves capture at least one opponent's piece
-    while (potential_s != 0 && shift <= 56) {
-        // Check if the capture mask intersects with current player's pieces
-        uint64_t capture_mask = (potential_s >> shift);
-        // If the capture mask intersects with player's pieces, it's a legal move
-        legal_moves_s |= ((capture_mask & player) << shift);
-        // Remove these legal moves from potential_s
-        potential_s &= (~legal_moves_s);
-        // If we hit an empty square, remove it from potential_s
-        potential_s &= (~(capture_mask | empty_squares) << shift);
-        shift += 8;
-    }
+    // North
+    uint64_t mask = opponent & 0x00FFFFFFFFFFFF00ULL;
+    uint64_t temp = mask & (player << 8);
+    for (int i = 0; i < 5; i++) temp |= mask & (temp << 8);
+    moves |= empty & (temp << 8);
 
-    // Moves where piece is placed east of an opponent's piece
-    uint64_t legal_moves_e = 0;
-    uint64_t mask_e_1 = 0x7E7E7E7E7E7E7E7E;
-    uint64_t mask_e_2 = 0x3F3F3F3F3F3F3F3F;
-    // Get empty squares east of opponent's pieces
-    uint64_t potential_e = ((opponent & mask_e_1) << 1) & empty_squares;
-    shift = 2;
-    // Check that these moves capture at least one opponent's piece
-    while (potential_e != 0 && shift <= 7) {
-        // Check if the capture mask intersects with current player's pieces
-        uint64_t capture_mask = ((potential_e >> shift) & mask_e_2);
-        // If the capture mask intersects with player's pieces, it's a legal move
-        legal_moves_e |= (capture_mask & player) << shift;
-        // Remove these legal moves from potential_e
-        potential_e &= (~legal_moves_e);
-        // If we hit an empty square, remove it from potential_e
-        potential_e &= (~(capture_mask | empty_squares) << shift);
-        shift += 1;
-    }
+    // South
+    temp = mask & (player >> 8);
+    for (int i = 0; i < 5; i++) temp |= mask & (temp >> 8);
+    moves |= empty & (temp >> 8);
 
-    // Moves where piece is placed west of an opponent's piece
-    uint64_t legal_moves_w = 0;
-    uint64_t mask_w_1 = 0x7E7E7E7E7E7E7E7E;
-    uint64_t mask_w_2 = 0xFCFCFCFCFCFCFCFC;
-    // Get empty squares west of opponent's pieces
-    uint64_t potential_w = ((opponent & mask_w_1) >> 1) & empty_squares;
-    shift = 2;
-    // Check that these moves capture at least one opponent's piece
-    while (potential_w != 0 && shift <= 7) {
-        // Check if the capture mask intersects with current player's pieces
-        uint64_t capture_mask = ((potential_w << shift) & mask_w_2);
-        // If the capture mask intersects with player's pieces, it's a legal move
-        legal_moves_w |= (capture_mask & player) >> shift;
-        // Remove these legal moves from potential_w
-        potential_w &= (~legal_moves_w);
-        // If we hit an empty square, remove it from potential_w
-        potential_w &= (~(capture_mask | empty_squares) >> shift);
-        shift += 1;
-    }
+    // East
+    mask = opponent & notH;
+    temp = mask & (player << 1);
+    for (int i = 0; i < 5; i++) temp |= mask & (temp << 1);
+    moves |= empty & (temp << 1);
 
-    legal_moves_edges = legal_moves_n | legal_moves_s | legal_moves_e | legal_moves_w;
-    return legal_moves_edges;
-    // return legal_moves_n;
+    // West
+    mask = opponent & notA;
+    temp = mask & (player >> 1);
+    for (int i = 0; i < 5; i++) temp |= mask & (temp >> 1);
+    moves |= empty & (temp >> 1);
+
+    return moves;
 }
 
 uint64_t Board::legal_moves_diagonals(const uint64_t& empty_squares, const uint64_t& player, const uint64_t& opponent) const {
-    uint64_t legal_moves_d = 0;
-    // Implementation for calculating legal moves on diagonals
-    return legal_moves_d;
+    uint64_t moves = 0;
+    const uint64_t notA = 0xfefefefefefefefeULL;
+    const uint64_t notH = 0x7f7f7f7f7f7f7f7fULL;
+
+    // Northeast (up-right)
+    uint64_t mask = opponent & notH;
+    uint64_t temp = mask & (player << 9);
+    for (int i = 0; i < 5; i++) temp |= mask & (temp << 9);
+    moves |= empty_squares & (temp << 9);
+
+    // Northwest (up-left)
+    mask = opponent & notA;
+    temp = mask & (player << 7);
+    for (int i = 0; i < 5; i++) temp |= mask & (temp << 7);
+    moves |= empty_squares & (temp << 7);
+
+    // Southeast (down-right)
+    mask = opponent & notH;
+    temp = mask & (player >> 7);
+    for (int i = 0; i < 5; i++) temp |= mask & (temp >> 7);
+    moves |= empty_squares & (temp >> 7);
+
+    // Southwest (down-left)
+    mask = opponent & notA;
+    temp = mask & (player >> 9);
+    for (int i = 0; i < 5; i++) temp |= mask & (temp >> 9);
+    moves |= empty_squares & (temp >> 9);
+
+    return moves;
+}
+
+void Board::flip_pieces(const uint64_t& move, uint64_t& player, uint64_t& opponent, const uint64_t&) {
+    // Masks for board edges
+    const uint64_t row1 = 0x00000000000000FFULL;
+    const uint64_t row2 = 0x000000000000FF00ULL;
+    const uint64_t row7 = 0x00FF000000000000ULL;
+    const uint64_t row8 = 0xFF00000000000000ULL;
+    const uint64_t notA = 0xfefefefefefefefeULL;
+    const uint64_t notAB = 0xfcfcfcfcfcfcfcfcULL;
+    const uint64_t notH = 0x7f7f7f7f7f7f7f7fULL;
+    const uint64_t notGH = 0x3f3f3f3f3f3f3f3fULL;
+
+    struct Dir {
+        int shift;
+        uint64_t skip_mask; // If move & skip_mask, skip this direction
+        uint64_t border_mask; // Used to prevent wrap during shifting
+    };
+
+    // Directions: N, S, E, W, NE, NW, SE, SW
+    const Dir dirs[8] = {
+        {  8, row1 | row2, 0xFFFFFFFFFFFFFFFFULL }, // N
+        { -8, row7 | row8, 0xFFFFFFFFFFFFFFFFULL }, // S
+        {  1, notH & notGH, notH },                 // E
+        { -1, notA & notAB, notA },                 // W
+        {  9, (row1 | row2) | (notH & notGH), notH }, // NE
+        {  7, (row1 | row2) | (notA & notAB), notA }, // NW
+        { -7, (row7 | row8) | (notH & notGH), notH }, // SE
+        { -9, (row7 | row8) | (notA & notAB), notA }, // SW
+    };
+
+    for (const auto& d : dirs) {
+        if (move & d.skip_mask) continue; // Skip if move is on/near the edge for this direction
+
+        uint64_t flips = 0;
+        uint64_t cur = move;
+        while (true) {
+            // Shift and mask to prevent wrapping
+            if (d.shift > 0) {
+                cur = (cur << d.shift) & d.border_mask;
+            } else {
+                cur = (cur >> -d.shift) & d.border_mask;
+            }
+            if (cur == 0) break;
+            if (cur & opponent) {
+                flips |= cur;
+            } else if (cur & player) {
+                player |= flips;
+                opponent &= ~flips;
+                break;
+            } else {
+                break;
+            }
+        }
+    }
 }
