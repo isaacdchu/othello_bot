@@ -33,7 +33,7 @@ void Board::pretty_print() const {
             all_squares += "\n";
         }
     }
-    std::string current_player_str = current_player ? "Black" : "White";
+    const std::string current_player_str = current_player ? "Black" : "White";
     std::cout << "Current player: " << current_player_str << std::endl;
     std::cout << "Board state:" << std::endl;
     std::cout << "  a b c d e f g h" << std::endl;
@@ -42,11 +42,7 @@ void Board::pretty_print() const {
 }
 
 Board Board::deep_copy() const {
-    Board copy;
-    copy.state = this->state;
-    copy.current_player = this->current_player;
-    copy.legal_moves = this->legal_moves;
-    copy.game_over = this->game_over;
+    Board copy(state, current_player);
     return copy;
 }
 
@@ -77,6 +73,13 @@ bool Board::get_current_player() const {
 
 bool Board::is_game_over() const {
     return game_over;
+}
+
+const std::pair<const int, const int> Board::get_scores() const {
+    // Returns the scores of both players, [black_score, white_score]
+    const int black_count = __builtin_popcountll(state.black);
+    const int white_count = __builtin_popcountll(state.white);
+    return {black_count, white_count};
 }
 
 void Board::update_legal_moves() {

@@ -23,13 +23,7 @@ public:
     uint64_t get_legal_moves() const;
     bool get_current_player() const;
     bool is_game_over() const;
-    constexpr std::pair<int, int> get_scores() const {
-        // Returns the scores of both players, [black_score, white_score]
-        int black_count = std::popcount(state.black);
-        int white_count = std::popcount(state.white);
-        return {black_count, white_count};
-    }
-
+    const std::pair<const int, const int> get_scores() const;
 private:
     State state;
     bool current_player; // true for black, false for white
