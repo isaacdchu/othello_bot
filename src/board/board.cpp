@@ -98,14 +98,14 @@ void Board::update_legal_moves() {
     // Call for each direction
     gen_moves(8, 0x00FFFFFFFFFFFF00ULL, false); // North
     gen_moves(8, 0x00FFFFFFFFFFFF00ULL, true);  // South
-    gen_moves(1, 0x7f7f7f7f7f7f7f7fULL, true);  // East
-    gen_moves(1, 0xfefefefefefefefeULL, false); // West
-    gen_moves(7, 0x7f7f7f7f7f7f7f7fULL, true);  // SE
-    gen_moves(7, 0xfefefefefefefefeULL, false); // NW
-    gen_moves(9, 0x7f7f7f7f7f7f7f7fULL, true);  // NE
-    gen_moves(9, 0xfefefefefefefefeULL, false); // SW
+    gen_moves(1, 0x7e7e7e7e7e7e7e7eULL, true);  // East
+    gen_moves(1, 0x7e7e7e7e7e7e7e7eULL, false); // West
+    gen_moves(7, 0x007e7e7e7e7e7e00ULL, true);  // SE
+    gen_moves(7, 0x007e7e7e7e7e7e00ULL, false); // NW
+    gen_moves(9, 0x007e7e7e7e7e7e00ULL, true);  // NE
+    gen_moves(9, 0x007e7e7e7e7e7e00ULL, false); // SW
 
-    legal_moves = moves;
+    legal_moves = moves & empty_squares; // Filter out moves that are not on empty squares
 }
 
 void Board::detect_game_over() {
