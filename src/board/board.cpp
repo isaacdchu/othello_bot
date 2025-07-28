@@ -74,94 +74,32 @@ bool Board::is_game_over() const {
 }
 
 void Board::update_legal_moves() {
-    // Updates legal moves for the current player based on the current state
-    uint64_t empty_squares = ~(state.black | state.white); // 1 in empty squares, 0 in occupied squares
+    const uint64_t empty_squares = ~(state.black | state.white);
     uint64_t &player = current_player ? state.black : state.white;
     uint64_t &opponent = current_player ? state.white : state.black;
     uint64_t moves = 0;
-    // Masks for board edges
-    const uint64_t notA = 0xfefefefefefefefeULL; // Not file A (left)
-    const uint64_t notH = 0x7f7f7f7f7f7f7f7fULL; // Not file H (right)
 
-    // North (up)
-    uint64_t temp = opponent & 0x00FFFFFFFFFFFF00ULL;
-    uint64_t t = temp & (player >> 8);
-    t |= temp & (t >> 8);
-    t |= temp & (t >> 8);
-    t |= temp & (t >> 8);
-    t |= temp & (t >> 8);
-    t |= temp & (t >> 8);
-    moves |= empty_squares & (t >> 8);
+    // Helper lambda for a single direction
+    auto gen_moves = [&](const int shift, const uint64_t mask, const bool left_shift) {
+        uint64_t temp = opponent & mask;
+        uint64_t t = left_shift ? (temp & (player << shift)) : (temp & (player >> shift));
+        for (int i = 0; i < 5; ++i) {
+            t |= left_shift ? (temp & (t << shift)) : (temp & (t >> shift));
+        }
+        moves |= left_shift ? (empty_squares & (t << shift)) : (empty_squares & (t >> shift));
+    };
 
-    // South (down)
-    t = temp & (player << 8);
-    t |= temp & (t << 8);
-    t |= temp & (t << 8);
-    t |= temp & (t << 8);
-    t |= temp & (t << 8);
-    t |= temp & (t << 8);
-    moves |= empty_squares & (t << 8);
+    // Call for each direction
+    gen_moves(8, 0x00FFFFFFFFFFFF00ULL, false); // North
+    gen_moves(8, 0x00FFFFFFFFFFFF00ULL, true);  // South
+    gen_moves(1, 0x7f7f7f7f7f7f7f7fULL, true);  // East
+    gen_moves(1, 0xfefefefefefefefeULL, false); // West
+    gen_moves(7, 0x7f7f7f7f7f7f7f7fULL, true);  // SE
+    gen_moves(7, 0xfefefefefefefefeULL, false); // NW
+    gen_moves(9, 0x7f7f7f7f7f7f7f7fULL, true);  // NE
+    gen_moves(9, 0xfefefefefefefefeULL, false); // SW
 
-    // East (right)
-    temp = opponent & notH;
-    t = temp & (player << 1);
-    t |= temp & (t << 1);
-    t |= temp & (t << 1);
-    t |= temp & (t << 1);
-    t |= temp & (t << 1);
-    t |= temp & (t << 1);
-    moves |= empty_squares & (t << 1);
-
-    // West (left)
-    temp = opponent & notA;
-    t = temp & (player >> 1);
-    t |= temp & (t >> 1);
-    t |= temp & (t >> 1);
-    t |= temp & (t >> 1);
-    t |= temp & (t >> 1);
-    t |= temp & (t >> 1);
-    moves |= empty_squares & (t >> 1);
-
-    // Northeast (up-right)
-    temp = opponent & notH;
-    t = temp & (player >> 7);
-    t |= temp & (t >> 7);
-    t |= temp & (t >> 7);
-    t |= temp & (t >> 7);
-    t |= temp & (t >> 7);
-    t |= temp & (t >> 7);
-    moves |= empty_squares & (t >> 7);
-
-    // Northwest (up-left)
-    temp = opponent & notA;
-    t = temp & (player >> 9);
-    t |= temp & (t >> 9);
-    t |= temp & (t >> 9);
-    t |= temp & (t >> 9);
-    t |= temp & (t >> 9);
-    t |= temp & (t >> 9);
-    moves |= empty_squares & (t >> 9);
-
-    // Southeast (down-right)
-    temp = opponent & notH;
-    t = temp & (player << 9);
-    t |= temp & (t << 9);
-    t |= temp & (t << 9);
-    t |= temp & (t << 9);
-    t |= temp & (t << 9);
-    t |= temp & (t << 9);
-    moves |= empty_squares & (t << 9);
-
-    // Southwest (down-left)
-    temp = opponent & notA;
-    t = temp & (player << 7);
-    t |= temp & (t << 7);
-    t |= temp & (t << 7);
-    t |= temp & (t << 7);
-    t |= temp & (t << 7);
-    t |= temp & (t << 7);
-    moves |= empty_squares & (t << 7);
-    legal_moves = moves; // Update legal moves for the current player
+    legal_moves = moves;
 }
 
 void Board::detect_game_over() {
@@ -180,48 +118,41 @@ void Board::detect_game_over() {
     game_over = true; // No legal moves for both players, game is over
 }
 
-void Board::flip_pieces(const uint64_t& move, uint64_t& player, uint64_t& opponent, const uint64_t& empty_squares) {
-    // Directional constants for your bitboard orientation
+void Board::flip_pieces(const uint64_t& move, uint64_t& player, uint64_t& opponent, const uint64_t&) {
     static const int directions[8] = {8, -8, 1, -1, 9, 7, -9, -7};
-    static const uint64_t masks[8] = {
-        ~(MASK_TOP_ROW | MASK_BOTTOM_ROW), // N/S
-        ~(MASK_TOP_ROW | MASK_BOTTOM_ROW),
-        ~(MASK_LEFT_COLUMN | MASK_RIGHT_COLUMN), // E/W
-        ~(MASK_LEFT_COLUMN | MASK_RIGHT_COLUMN),
-        ~(MASK_TOP_ROW | MASK_LEFT_COLUMN | MASK_BOTTOM_ROW | MASK_RIGHT_COLUMN), // Diagonals
-        ~(MASK_TOP_ROW | MASK_LEFT_COLUMN | MASK_BOTTOM_ROW | MASK_RIGHT_COLUMN),
-        ~(MASK_TOP_ROW | MASK_LEFT_COLUMN | MASK_BOTTOM_ROW | MASK_RIGHT_COLUMN),
-        ~(MASK_TOP_ROW | MASK_LEFT_COLUMN | MASK_BOTTOM_ROW | MASK_RIGHT_COLUMN)
+    static const uint64_t edge_masks[8] = {
+        ~MASK_TOP_ROW,    // North
+        ~MASK_BOTTOM_ROW, // South
+        ~MASK_RIGHT_COLUMN, // East
+        ~MASK_LEFT_COLUMN,  // West
+        ~MASK_TOP_ROW & ~MASK_RIGHT_COLUMN,    // NE
+        ~MASK_BOTTOM_ROW & ~MASK_RIGHT_COLUMN, // SE
+        ~MASK_TOP_ROW & ~MASK_LEFT_COLUMN,     // NW
+        ~MASK_BOTTOM_ROW & ~MASK_LEFT_COLUMN   // SW
     };
 
-    uint64_t flip = 0;
+    uint64_t flips = 0;
     for (int d = 0; d < 8; ++d) {
         int shift = directions[d];
-        uint64_t mask = masks[d];
-        uint64_t flips = 0;
-        uint64_t candidate = 0;
-        uint64_t m = move;
+        uint64_t mask = edge_masks[d];
+        uint64_t cur = move;
+        uint64_t captured = 0;
 
-        for (int i = 0; i < 7; ++i) {
-            // Shift in the correct direction
-            if (shift > 0) {
-                if ((m >> shift) & mask) m = (m >> shift) & mask;
-                else break;
-            } else {
-                if ((m << -shift) & mask) m = (m << -shift) & mask;
-                else break;
-            }
-            if (m & opponent) {
-                candidate |= m;
-            } else if (m & player) {
-                flips |= candidate;
+        while (true) {
+            // Prevent wrap-around by masking before shifting
+            if ((shift > 0 && (cur & mask) == 0) || (shift < 0 && (cur & mask) == 0)) break;
+            cur = (shift > 0) ? (cur >> shift) : (cur << -shift);
+            if (cur == 0) break;
+            if ((cur & opponent) != 0) {
+                captured |= cur;
+            } else if ((cur & player) != 0) {
+                flips |= captured;
                 break;
             } else {
                 break;
             }
         }
-        flip |= flips;
     }
-    player |= flip;
-    opponent &= ~flip;
+    player |= flips;
+    opponent &= ~flips;
 }
