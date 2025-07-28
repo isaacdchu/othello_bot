@@ -9,25 +9,24 @@ public:
         : Player(name, player_color) {}
     virtual ~Human() = default;
     uint64_t get_move(const Board& board) override {
-        uint64_t move = 64;
-        uint64_t one = 1;
-        do {
-            std::cout << "Enter your move (0-63): ";
-            std::cin >> move;
-            if (std::cin.fail() || move < 0 || move >= 64) {
-                std::cin.clear(); // Clear the error flag
-                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Discard invalid input
-                std::cout << "Invalid move. Please enter a number between 0 and 63." << std::endl;
-                move = 64; // Reset to an invalid value to continue the loop
-                continue;
-            }
-            if (!(board.get_legal_moves() & (one << move))) {
-                std::cout << "Illegal move. Please try again." << std::endl;
-                move = 64; // Reset to an invalid value to continue the loop
-                continue;
-            }
-        } while (move >= 64);
-        return one << move;
+        std::string input;
+        std::cout << get_name() << ", enter your move (a1 - h8): ";
+        std::cin >> input;
+
+        // Convert input square to move
+        uint64_t move = square_to_move(input);
+        if (move == 0) {
+            std::cerr << "Invalid move. Please try again." << std::endl;
+            return get_move(board); // Retry if the move is invalid
+        }
+
+        // Check if the move is legal
+        if (!(board.get_legal_moves() & move)) {
+            std::cerr << "Illegal move. Please try again." << std::endl;
+            return get_move(board); // Retry if the move is illegal
+        }
+
+        return move; // Return the valid move
     }
 };
 

@@ -18,7 +18,10 @@ Board::Board(State initial_state, bool current_player) {
 
 void Board::pretty_print() const {
     std::string all_squares = "";
-    for (int i = 0; i < 64; ++i) {
+    for (int i = 0; i < 64; i++) {
+        if (i % 8 == 0) {
+            all_squares = all_squares + std::to_string((i / 8) + 1) + " ";
+        }
         if (state.black & (ONE << i)) {
             all_squares += "B ";
         } else if (state.white & (ONE << i)) {
@@ -26,13 +29,16 @@ void Board::pretty_print() const {
         } else {
             all_squares += ". ";
         }
-        if ((i + 1) % 8 == 0) {
+        if (i % 8 == 7 && i != 63) {
             all_squares += "\n";
         }
     }
     std::string current_player_str = current_player ? "Black" : "White";
     std::cout << "Current player: " << current_player_str << std::endl;
-    std::cout << "Board state:\n" << all_squares << std::endl;
+    std::cout << "Board state:" << std::endl;
+    std::cout << "  a b c d e f g h" << std::endl;
+    std::cout << all_squares << std::endl;
+    
 }
 
 Board Board::deep_copy() const {

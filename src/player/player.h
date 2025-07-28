@@ -2,6 +2,7 @@
 #define PLAYER_H
 
 #include "../board/board.h"
+#include "../utils/utils.h"
 
 class Player {
 public:

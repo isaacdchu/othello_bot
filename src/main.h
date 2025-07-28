@@ -4,6 +4,7 @@
 #include "board/board.h"
 #include "player/player.h"
 #include "player/human.cpp"
+#include "utils/utils.h"
 
 #include <iostream>
 

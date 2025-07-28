@@ -21,7 +21,7 @@ void run_game(Player* player_1, Player* player_2, Board& board) {
     std::cout << "Legal moves: ";
     for (int i = 0; i < 64; ++i) {
         if (legal_moves & (1ULL << i)) {
-            std::cout << i << " ";
+            std::cout << move_to_square(1ULL << i) << " ";
         }
     }
     std::cout << std::endl;

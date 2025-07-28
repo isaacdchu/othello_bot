@@ -14,7 +14,6 @@ all: $(TARGET)
 $(TARGET): $(OBJECTS)
 	$(CXX) -o $@ $^
 
-
 # Pattern rule to build .o files from .cpp files in any subdirectory
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(dir $@)
@@ -24,6 +23,7 @@ clean:
 	rm -rf $(BUILD_DIR) $(TARGET)
 
 run:
+	@$(MAKE) clean
 	@$(MAKE) all
 	./$(TARGET)
 .PHONY: all clean run

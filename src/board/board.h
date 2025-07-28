@@ -1,8 +1,6 @@
 #ifndef BOARD_H
 #define BOARD_H
 
-#include "../utils/utils.h"
-
 #include <cstdint>
 #include <string>
 #include <iostream>
