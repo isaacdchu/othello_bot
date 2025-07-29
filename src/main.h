@@ -5,6 +5,7 @@
 #include "player/player.h"
 #include "player/human.cpp"
 #include "player/randobot.cpp"
+#include "player/otto.cpp"
 #include "utils/utils.h"
 
 #include <iostream>

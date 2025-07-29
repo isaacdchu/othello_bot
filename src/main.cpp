@@ -5,6 +5,7 @@ int main() {
     // Player* player_2 = new Human("Player 2", false);
     Player* player_1 = new RandoBot("RandoBot 1", true);
     Player* player_2 = new RandoBot("RandoBot 2", false);
+    // Player* player_2 = new Otto("Otto", false);
     State initial_state = {0x810000000, 0x1008000000};
     Board board(initial_state, true); // Start with black player
     while (!board.is_game_over()) {
@@ -43,8 +44,10 @@ void run_game(Player* player_1, Player* player_2, Board& board) {
     std::cout << std::endl;
     uint64_t move;
     if (board.get_current_player()) {
+        std::cout << player_1->get_name() << "'s turn." << std::endl;
         move = player_1->get_move(board);
     } else {
+        std::cout << player_2->get_name() << "'s turn." << std::endl;
         move = player_2->get_move(board);
     }
     board.make_move(move);
