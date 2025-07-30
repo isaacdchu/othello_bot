@@ -21,14 +21,15 @@ public:
         // Use MCTS to find the best move
         MCTSNode root(0, board, nullptr, get_player_color());
         root.initialize_children(); // Initialize children nodes based on legal moves
-        unsigned int i;
-        for (i = 0; i < 2000; i++) {
+        unsigned int iterations = 0;
+        for (unsigned int i = 0; i < 10000; i++) {
             auto node = root.select();
-            if (node == nullptr) break; // No valid moves available
+            if (node == nullptr) continue; // No valid moves available
             const float result = node->simulate();
             node->backpropagate(result);
+            iterations++;
         }
-        std::cout << "MCTS completed after " << i << " iterations." << std::endl;
+        std::cout << "MCTS used " << iterations << " iterations." << std::endl;
         // Find the best move from the root node (most visited child)
         const uint64_t best_move = root.get_best_move();
         return best_move; // Return the best move found

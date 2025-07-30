@@ -26,7 +26,7 @@ private:
     const bool root_player; // true for black, false for white
     unsigned int visits;
     float value;
-    float get_uct(float c = 1.41) const {
+    float get_uct(float c = 1.4142f) const {
         if (visits == 0) return 0.0f; // Avoid division by zero
         unsigned int parent_visits = parent ? parent->get_visits() : 1; // Avoid log of zero
         return value / visits + c * sqrt(2 * log(parent_visits) / visits);

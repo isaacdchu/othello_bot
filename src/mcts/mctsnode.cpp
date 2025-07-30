@@ -47,7 +47,7 @@ MCTSNode* MCTSNode::select() {
     MCTSNode *best_child = nullptr;
     float best_uct = std::numeric_limits<float>::lowest();
     for (const auto &child : children) {
-        float uct_value = child->get_uct(1.0f);
+        float uct_value = child->get_uct(1.5f);
         if (uct_value > best_uct) {
             best_uct = uct_value;
             best_child = child.get(); // Keep the raw pointer to the best child
