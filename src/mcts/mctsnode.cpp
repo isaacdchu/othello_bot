@@ -47,7 +47,7 @@ MCTSNode* MCTSNode::select() {
     MCTSNode *best_child = nullptr;
     float best_uct = std::numeric_limits<float>::lowest();
     for (const auto &child : children) {
-        float uct_value = child->get_uct(1.2f);
+        float uct_value = child->get_uct(1.0f);
         if (uct_value > best_uct) {
             best_uct = uct_value;
             best_child = child.get(); // Keep the raw pointer to the best child
@@ -63,9 +63,10 @@ float MCTSNode::simulate() {
     uint64_t legal_moves = simulation_board.get_legal_moves();
     std::random_device rd;
     std::mt19937 gen(rd());
-    while (!simulation_board.is_game_over() && legal_moves != 0) {
+    while (!simulation_board.is_game_over()) {
         // Collect all legal moves
         std::vector<uint64_t> moves;
+        moves.reserve(__builtin_popcountll(legal_moves)); // Reserve space based on the number of legal moves
         uint64_t temp = legal_moves;
         while (temp) {
             uint64_t move = temp & -temp;

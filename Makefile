@@ -23,7 +23,6 @@ clean:
 	rm -rf $(BUILD_DIR) $(TARGET)
 
 run:
-	@$(MAKE) clean
 	@$(MAKE) all
 	./$(TARGET)
 .PHONY: all clean run
