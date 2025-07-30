@@ -19,3 +19,13 @@ uint64_t square_to_move(const std::string& square) {
     int index = (row - 1) * 8 + (column - 'a');
     return 1ULL << index; // Return the move as a bitboard
 }
+
+void print_legal_moves(const uint64_t legal_moves) {
+    std::cout << "Legal moves: ";
+    for (int i = 0; i < 64; ++i) {
+        if (legal_moves & (1ULL << i)) {
+            std::cout << move_to_square(1ULL << i) << " ";
+        }
+    }
+    std::cout << std::endl;
+}
