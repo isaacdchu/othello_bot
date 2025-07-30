@@ -1,9 +1,4 @@
 #include "board.h"
-#define ONE uint64_t(1) // Guarantees that ONE is a 64-bit unsigned integer
-#define MASK_TOP_ROW uint64_t(0x00000000000000FFULL) // Top row has 1's, rest are 0's
-#define MASK_BOTTOM_ROW uint64_t(0xFF00000000000000ULL) // Bottom row has 1's, rest are 0's
-#define MASK_LEFT_COLUMN uint64_t(0x0101010101010101ULL) // Left column has 1's, rest are 0's
-#define MASK_RIGHT_COLUMN uint64_t(0x8080808080808080ULL) // Right column has 1's, rest are 0's
 
 Board::Board(State initial_state, bool current_player) {
     state = initial_state;
@@ -24,9 +19,9 @@ void Board::pretty_print() const {
         if (i % 8 == 0) {
             all_squares = all_squares + std::to_string((i / 8) + 1) + " ";
         }
-        if (state.black & (ONE << i)) {
+        if (state.black & (uint64_t(1) << i)) {
             all_squares += "B ";
-        } else if (state.white & (ONE << i)) {
+        } else if (state.white & (uint64_t(1) << i)) {
             all_squares += "W ";
         } else {
             all_squares += ". ";
@@ -114,7 +109,9 @@ void Board::update_legal_moves() {
     legal_moves &= empty_squares; // Ensure legal moves are only on empty squares
 }
 
-void Board::generate_moves_right_shift(const uint64_t& player, const uint64_t& opponent, const uint64_t initial_mask, const uint64_t wrap_mask, const unsigned int shift) {
+void Board::generate_moves_right_shift(const uint64_t& player, const uint64_t& opponent, 
+    const uint64_t initial_mask, const uint64_t wrap_mask, const unsigned int shift) {
+    // Should only be called by update_legal_moves, nowhere else
     uint64_t temp_moves = 0;
     uint64_t temp = (((player & initial_mask) >> shift) & opponent) >> shift;
     for (int i = 0; i < 6; i++) {
@@ -125,7 +122,9 @@ void Board::generate_moves_right_shift(const uint64_t& player, const uint64_t& o
     legal_moves |= temp_moves; // Combine all legal moves found
 }
 
-void Board::generate_moves_left_shift(const uint64_t& player, const uint64_t& opponent, const uint64_t initial_mask, const uint64_t wrap_mask, const unsigned int shift) {
+void Board::generate_moves_left_shift(const uint64_t& player, const uint64_t& opponent, 
+    const uint64_t initial_mask, const uint64_t wrap_mask, const unsigned int shift) {
+    // Should only be called by update_legal_moves, nowhere else
     uint64_t temp_moves = 0;
     uint64_t temp = (((player & initial_mask) << shift) & opponent) << shift;
     for (int i = 0; i < 6; i++) {

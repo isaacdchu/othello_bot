@@ -30,8 +30,10 @@ private:
     uint64_t legal_moves;
     bool game_over;
     void update_legal_moves();
-    void generate_moves_right_shift(const uint64_t& player, const uint64_t& opponent, const uint64_t initial_mask, const uint64_t wrap_mask, const unsigned int shift);
-    void generate_moves_left_shift(const uint64_t& player, const uint64_t& opponent, const uint64_t initial_mask, const uint64_t wrap_mask, const unsigned int shift);
+    void generate_moves_right_shift(const uint64_t& player, const uint64_t& opponent, 
+        const uint64_t initial_mask, const uint64_t wrap_mask, const unsigned int shift);
+    void generate_moves_left_shift(const uint64_t& player, const uint64_t& opponent, 
+        const uint64_t initial_mask, const uint64_t wrap_mask, const unsigned int shift);
     void detect_game_over();
     uint64_t legal_moves_edges(const uint64_t& empty_squares, const uint64_t& player, const uint64_t& opponent) const;
     uint64_t legal_moves_diagonals(const uint64_t& empty_squares, const uint64_t& player, const uint64_t& opponent) const;
