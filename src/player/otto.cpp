@@ -10,7 +10,6 @@ public:
         : Player(name, player_color) {}
     virtual ~Otto() = default;
     uint64_t get_move(const Board &board) override {
-        std::cout << "Otto is thinking..." << std::endl;
         // Trivial move cases
         uint64_t legal_moves = board.get_legal_moves();
         if (legal_moves == 0) {
@@ -20,23 +19,18 @@ public:
             return legal_moves; // Only one legal move available
         }
         // Use MCTS to find the best move
-        std::cout << "Initializing root" << std::endl;
         MCTSNode root(0, board, nullptr, get_player_color());
         root.initialize_children(); // Initialize children nodes based on legal moves
-        std::cout << "Running MCTS loop" << std::endl;
-        for (int i = 0; i < 1000; i++) {
-            std::cout << "Iteration " << i + 1 << std::endl;
-            std::cout << "Selecting node" << std::endl;
+        unsigned int i;
+        for (i = 0; i < 1000; i++) {
             auto node = root.select();
             if (node == nullptr) break; // No valid moves available
-            std::cout << "Simulating node" << std::endl;
             const float result = node->simulate();
-            std::cout << "Backpropagating result" << std::endl;
             node->backpropagate(result);
         }
+        std::cout << "MCTS completed after " << i << " iterations." << std::endl;
         // Find the best move from the root node (most visited child)
         const uint64_t best_move = root.get_best_move();
-        delete &root; // Clean up the root node
         return best_move; // Return the best move found
     }
 };

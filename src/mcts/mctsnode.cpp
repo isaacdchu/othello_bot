@@ -6,9 +6,14 @@
 MCTSNode::MCTSNode(const uint64_t move_to_get_here, const Board &board, MCTSNode *parent, const bool root_player)
     : move_to_get_here(move_to_get_here), board(board), parent(parent), root_player(root_player), visits(0), value(0.0f) {
     // Constructor initializes the node with the given parameters
+    children_initialized = false; // Children are not initialized yet
 }
 
 void MCTSNode::initialize_children() {
+    if (children_initialized) {
+        return; // Children are already initialized, no need to do it again
+    }
+    children_initialized = true; // Mark children as initialized
     uint64_t temp_legal_moves = board.get_legal_moves(); // Get legal moves for the current board state
     if (temp_legal_moves == 0) {
         children.reserve(0); // Reserve no space for children
@@ -48,6 +53,7 @@ MCTSNode* MCTSNode::select() {
             best_child = child.get(); // Keep the raw pointer to the best child
         }
     }
+    best_child->initialize_children(); // Ensure the best child has its children initialized
     return best_child->select(); // Recur on the best child to find an unvisited node
 }
 
@@ -57,16 +63,8 @@ float MCTSNode::simulate() {
     Board simulation_board = board.deep_copy();
     uint64_t legal_moves = simulation_board.get_legal_moves();
     while (simulation_board.is_game_over() == false && legal_moves != 0) {
-        std::cout << "Legal moves: ";
-        for (int i = 0; i < 64; ++i) {
-            if (legal_moves & (1ULL << i)) {
-                std::cout << move_to_square(1ULL << i) << " ";
-            }
-        }
-        std::cout << std::endl;
         // Randomly select a legal move and apply it
         uint64_t move = legal_moves & -legal_moves; // Get the lowest bit set (first legal move)
-        simulation_board.pretty_print(); // Print the current board state
         simulation_board.make_move(move);
         legal_moves = simulation_board.get_legal_moves();
     }

@@ -1,5 +1,16 @@
 #include "board.h"
 
+// Constants/Masks filled with 1s except for the name
+static const uint64_t top_two_rows = 0xFFFFFFFFFFFF0000ULL;
+static const uint64_t bottom_two_rows = 0x0000FFFFFFFFFFFFULL;
+static const uint64_t right_two_columns = 0x3F3F3F3F3F3F3F3FULL;
+static const uint64_t left_two_columns = 0xFCFCFCFCFCFCFCFCULL;
+
+static const uint64_t top_row = 0xFFFFFFFFFFFFFF00ULL;
+static const uint64_t bottom_row = 0x00FFFFFFFFFFFFFFFULL;
+static const uint64_t right_column = 0x7F7F7F7F7F7F7F7FULL;
+static const uint64_t left_column = 0xFEFEFEFEFEFEFEFEULL;
+
 Board::Board(State initial_state, bool current_player) {
     state = initial_state;
     this->current_player = current_player;
@@ -50,8 +61,7 @@ void Board::make_move(uint64_t move) {
     uint64_t &opponent = current_player ? state.white : state.black;
     player |= move; // Place the piece for the current player
     legal_moves &= ~move; // Remove the move from legal moves
-    uint64_t empty_squares = ~(state.black | state.white);
-    flip_pieces(move, player, opponent, empty_squares);
+    flip_pieces(move, player, opponent);
     // Check for full board
     if (~(state.black + state.white) == 0) {
         game_over = true; // No empty squares left, game is over
@@ -83,11 +93,6 @@ void Board::update_legal_moves() {
     const uint64_t empty_squares = ~(state.black | state.white);
     const uint64_t &player = current_player ? state.black : state.white;
     const uint64_t &opponent = current_player ? state.white : state.black;
-    
-    static const uint64_t top_two_rows = 0xFFFFFFFFFFFF0000ULL;
-    static const uint64_t bottom_two_rows = 0x0000FFFFFFFFFFFFULL;
-    static const uint64_t left_two_columns = 0xFCFCFCFCFCFCFCFCULL;
-    static const uint64_t right_two_columns = 0x3F3F3F3F3F3F3F3FULL;
     
     // Legal moves that capture pieces below itself
     generate_moves_right_shift(player, opponent, top_two_rows, bottom_two_rows, 8);
@@ -151,11 +156,58 @@ void Board::generate_moves_left_shift(const uint64_t& player, const uint64_t& op
     game_over = true; // No legal moves for both players, game is over (legal_moves is still 0, no restoration needed)
 }
 
-void Board::flip_pieces(const uint64_t& move, uint64_t& player, uint64_t& opponent, const uint64_t& empty_squares) {
+void Board::flip_pieces(const uint64_t& move, uint64_t& player, uint64_t& opponent) {
     // This function flips the opponent's pieces in all directions based on the move
     // Assumes that the move is valid and already occupied by "player"
+    flip_pieces_right_shift(move, player, opponent, top_two_rows, bottom_row, 8); // Flips pieces above the move
+    flip_pieces_left_shift(move, player, opponent, bottom_two_rows, top_row, 8); // Flips pieces below the move
+    flip_pieces_right_shift(move, player, opponent, right_two_columns, left_column, 1); // Flips pieces to the right of the move
+    flip_pieces_left_shift(move, player, opponent, left_two_columns, right_column, 1); // Flips pieces to the left of the move
+
+    // Flips pieces diagonally down-right
+    flip_pieces_left_shift(move, player, opponent, bottom_two_rows | right_two_columns, top_row | left_column, 9);
+    // Flips pieces diagonally down-left
+    flip_pieces_left_shift(move, player, opponent, bottom_two_rows | left_two_columns, top_row | right_column, 7);
+    // Flips pieces diagonally up-right
+    flip_pieces_right_shift(move, player, opponent, top_two_rows | right_two_columns, bottom_row | left_column, 7);
+    // Flips pieces diagonally up-left
+    flip_pieces_right_shift(move, player, opponent, top_two_rows | left_two_columns, bottom_row | right_column, 9);
+}
+
+void Board::flip_pieces_right_shift(const uint64_t& move, uint64_t& player, uint64_t& opponent, 
+    const uint64_t initial_mask, const uint64_t wrap_mask, const unsigned int shift) {
+    // Should only be called by flip_pieces, nowhere else
     uint64_t flips = 0;
-    flips = flips & opponent; // Only flips pieces that are currently occupied by the opponent
-    player |= flips;
-    opponent &= ~flips;
+    // Stores current square to check for flips
+    uint64_t temp = ((move & initial_mask) >> shift) & opponent;
+    while (temp > 0) {
+        flips |= temp;
+        temp = ((temp & wrap_mask) >> shift);
+        if (temp & player) {
+            // We hit our own pieces, so we can flip the opponent's pieces
+            player |= flips;
+            opponent &= ~flips;
+            break;
+        }
+        temp &= opponent; // Continue only with opponent's pieces
+    }
+}
+
+void Board::flip_pieces_left_shift(const uint64_t& move, uint64_t& player, uint64_t& opponent, 
+    const uint64_t initial_mask, const uint64_t wrap_mask, const unsigned int shift) {
+    // Should only be called by flip_pieces, nowhere else
+    uint64_t flips = 0;
+    // Stores current square to check for flips
+    uint64_t temp = ((move & initial_mask) << shift) & opponent;
+    while (temp > 0) {
+        flips |= temp;
+        temp = ((temp & wrap_mask) << shift);
+        if (temp & player) {
+            // We hit our own pieces, so we can flip the opponent's pieces
+            player |= flips;
+            opponent &= ~flips;
+            break;
+        }
+        temp &= opponent; // Continue only with opponent's pieces
+    }
 }

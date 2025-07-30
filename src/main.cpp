@@ -1,11 +1,11 @@
 #include "main.h"
 
 int main() {
-    Player* player_1 = new Human("Player 1", true);
-    Player* player_2 = new Human("Player 2", false);
-    // Player* player_1 = new RandoBot("RandoBot 1", true);
+    // Player* player_1 = new Human("Player 1", true);
+    // Player* player_2 = new Human("Player 2", false);
+    Player* player_1 = new RandoBot("RandoBot 1", true);
     // Player* player_2 = new RandoBot("RandoBot 2", false);
-    // Player* player_2 = new Otto("Otto", false);
+    Player* player_2 = new Otto("Otto", false);
     State initial_state = {0x810000000, 0x1008000000};
     Board board(initial_state, true); // Start with black player
     print_legal_moves(board.get_legal_moves());

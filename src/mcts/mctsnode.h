@@ -9,13 +9,6 @@
 class MCTSNode {
 public:
     MCTSNode(const uint64_t move_to_get_here, const Board &board, MCTSNode *parent, const bool root_player);
-    ~MCTSNode() {
-        // Destructor to clean up children nodes
-        for (auto &child : children) {
-            child.reset();
-        }
-        parent = nullptr; // Clear parent pointer
-    }
     const uint64_t move_to_get_here; // The move that led from its parent to this node
     void initialize_children();
     MCTSNode* select();
@@ -37,6 +30,7 @@ private:
         unsigned int parent_visits = parent ? parent->get_visits() : 1; // Avoid log of zero
         return value / visits + c * sqrt(2 * log(parent_visits) / visits);
     }
+    bool children_initialized;
 };
 
 #endif // MCTS_NODE_H
