@@ -5,6 +5,7 @@
 #include "../utils/utils.h"
 #include <vector>
 #include <memory>
+#include <random>
 
 class MCTSNode {
 public:

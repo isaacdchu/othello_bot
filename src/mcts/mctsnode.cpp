@@ -45,9 +45,9 @@ MCTSNode* MCTSNode::select() {
     // We have no unvisited children, so we are fully expanded
     // Select the child with the highest UCT value and recurse to find an unvisited node
     MCTSNode *best_child = nullptr;
-    float best_uct = -1.0f; // UCT is always non-negative, so start with a negative value
+    float best_uct = std::numeric_limits<float>::lowest();
     for (const auto &child : children) {
-        float uct_value = child->get_uct();
+        float uct_value = child->get_uct(1.2f);
         if (uct_value > best_uct) {
             best_uct = uct_value;
             best_child = child.get(); // Keep the raw pointer to the best child
@@ -59,12 +59,22 @@ MCTSNode* MCTSNode::select() {
 
 float MCTSNode::simulate() {
     // Returns the result of a random simulation from this node
-    // Returned value is the difference in scores for the root player (higher is better for root player)
     Board simulation_board = board.deep_copy();
     uint64_t legal_moves = simulation_board.get_legal_moves();
-    while (simulation_board.is_game_over() == false && legal_moves != 0) {
-        // Randomly select a legal move and apply it
-        uint64_t move = legal_moves & -legal_moves; // Get the lowest bit set (first legal move)
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    while (!simulation_board.is_game_over() && legal_moves != 0) {
+        // Collect all legal moves
+        std::vector<uint64_t> moves;
+        uint64_t temp = legal_moves;
+        while (temp) {
+            uint64_t move = temp & -temp;
+            moves.push_back(move);
+            temp &= ~move;
+        }
+        // Pick a random move
+        std::uniform_int_distribution<> dis(0, moves.size() - 1);
+        uint64_t move = moves[dis(gen)];
         simulation_board.make_move(move);
         legal_moves = simulation_board.get_legal_moves();
     }
