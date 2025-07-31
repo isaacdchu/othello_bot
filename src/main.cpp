@@ -1,12 +1,12 @@
 #include "main.h"
 
 int main() {
-    // Player* player_1 = new Human("Player 1", true);
-    // Player* player_2 = new Human("Player 2", false);
+    Player* player_1 = new Human("Player 1", true);
+    Player* player_2 = new Human("Player 2", false);
     // Player* player_1 = new RandoBot("RandoBot 1", true);
     // Player* player_2 = new RandoBot("RandoBot 2", false);
-    Player* player_1 = new Otto("Otto 1", true);
-    Player* player_2 = new Otto("Otto 2", false);
+    // Player* player_1 = new Otto("Otto 1", true);
+    // Player* player_2 = new Otto("Otto 2", false);
     State initial_state = {0x0000000810000000ULL, 0x0000001008000000ULL}; // Default starting position
     // State initial_state = {0x0000000000030001ULL, 0x0000000000040200ULL}; // test when a turn is passed
     Board board(initial_state, true); // Start with black player

@@ -162,8 +162,8 @@ void Board::flip_pieces(const uint64_t& move, uint64_t& player, uint64_t& oppone
     // Assumes that the move is valid and already occupied by "player"
     flip_pieces_right_shift(move, player, opponent, top_two_rows, bottom_row, 8); // Flips pieces above the move
     flip_pieces_left_shift(move, player, opponent, bottom_two_rows, top_row, 8); // Flips pieces below the move
-    flip_pieces_right_shift(move, player, opponent, right_two_columns, left_column, 1); // Flips pieces to the right of the move
-    flip_pieces_left_shift(move, player, opponent, left_two_columns, right_column, 1); // Flips pieces to the left of the move
+    flip_pieces_left_shift(move, player, opponent, right_two_columns, left_column, 1); // Flips pieces to the right of the move
+    flip_pieces_right_shift(move, player, opponent, left_two_columns, right_column, 1); // Flips pieces to the left of the move
 
     // Flips pieces diagonally down-right
     flip_pieces_left_shift(move, player, opponent, bottom_two_rows | right_two_columns, top_row | left_column, 9);
