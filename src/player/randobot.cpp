@@ -3,15 +3,17 @@
 
 #include "../player/player.h"
 #include <vector>
-#include <cstdlib> // for rand()
+#include <random>
 
-class RandoBot : public Player
-{
+class RandoBot : public Player {
 public:
     RandoBot(const std::string &name, bool player_color)
         : Player(name, player_color) {}
     virtual ~RandoBot() = default;
     uint64_t get_move(const Board &board) override {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+
         // Get all legal moves for the current player
         uint64_t legal_moves = board.get_legal_moves();
         // If there are no legal moves, return 0 (indicating no move)
@@ -30,8 +32,8 @@ public:
             return 0;
         }
         // Select a random move from the list of legal moves
-        size_t random_index = rand() % moves.size();
-        return moves[random_index];
+        std::uniform_int_distribution<size_t> dist(0, moves.size() - 1);
+        return moves[dist(gen)];
     }
 };
 

@@ -1,8 +1,5 @@
 #include "mctsnode.h"
 
-std::random_device rd;
-std::mt19937 gen(rd());
-
 MCTSNode::MCTSNode(const uint64_t move_to_get_here, const Board &board, MCTSNode *parent, const bool root_player)
     : move_to_get_here(move_to_get_here), board(board), parent(parent), root_player(root_player), visits(0), value(0.0f) {
     // Constructor initializes the node with the given parameters
@@ -61,6 +58,8 @@ float MCTSNode::simulate() {
     uint64_t legal_moves = simulation_board.get_legal_moves();
     // Array that holds bit indices of legal moves
     std::array<int, 33> moves; // Max 33 legal moves in Othello
+    std::random_device rd;
+    std::mt19937 gen(rd());
     while (legal_moves > 0) {
         moves.fill(0); // Initialize all elements to 0
         // Collect all legal moves
