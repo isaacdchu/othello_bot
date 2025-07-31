@@ -142,6 +142,7 @@ void Board::generate_moves_left_shift(const uint64_t& player, const uint64_t& op
 
     void Board::detect_game_over() {
     // Updates game_over and current_player based on the current state
+    update_legal_moves(); // Update legal moves for the current player
     const uint64_t current_legal_moves = legal_moves;
     current_player = !current_player; // Switch player
     update_legal_moves(); // Update legal moves for the new current player
