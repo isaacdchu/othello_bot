@@ -42,9 +42,9 @@ void Board::pretty_print() const {
         }
     }
     const std::string current_player_str = current_player ? "Black" : "White";
-    std::cout << "Current player: " << current_player_str << std::endl;
-    std::cout << "Board state:" << std::endl;
-    std::cout << "  a b c d e f g h" << std::endl;
+    std::cout << "Current player: " << current_player_str << "\n";
+    std::cout << "Board state:" << "\n";
+    std::cout << "  a b c d e f g h" << "\n";
     std::cout << all_squares << std::endl;
     
 }

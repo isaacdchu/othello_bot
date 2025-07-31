@@ -22,10 +22,11 @@ uint64_t square_to_move(const std::string& square) {
 
 void print_legal_moves(const uint64_t legal_moves) {
     std::cout << "Legal moves: ";
-    for (int i = 0; i < 64; ++i) {
-        if (legal_moves & (1ULL << i)) {
-            std::cout << move_to_square(1ULL << i) << " ";
-        }
+    uint64_t temp_legal_moves = legal_moves;
+    while (temp_legal_moves > 0) {
+        uint64_t move = temp_legal_moves & -temp_legal_moves; // Get the lowest bit set
+        std::cout << move_to_square(move) << " ";
+        temp_legal_moves &= ~move; // Remove this move from the legal moves
     }
     std::cout << std::endl;
 }

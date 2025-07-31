@@ -1,7 +1,7 @@
-#ifndef MCTSNODE_H
-#define MCTSNODE_H
-
 #include "mctsnode.h"
+
+std::random_device rd;
+std::mt19937 gen(rd());
 
 MCTSNode::MCTSNode(const uint64_t move_to_get_here, const Board &board, MCTSNode *parent, const bool root_player)
     : move_to_get_here(move_to_get_here), board(board), parent(parent), root_player(root_player), visits(0), value(0.0f) {
@@ -33,21 +33,19 @@ void MCTSNode::initialize_children() {
 MCTSNode* MCTSNode::select() {
     // Implementation for selecting a child node based on UCT value
     // Don't try to select if there are no children (i.e., game over)
-    if (children.empty()) {
+    if (board.is_game_over()) {
         return nullptr; // No children to select from
     }
-    // Prioritize selecting unvisited nodes first
-    for (const auto &child : children) {
-        if (child->get_visits() == 0) {
-            return child.get();
-        }
-    }
-    // We have no unvisited children, so we are fully expanded
     // Select the child with the highest UCT value and recurse to find an unvisited node
     MCTSNode *best_child = nullptr;
     float best_uct = std::numeric_limits<float>::lowest();
+    float uct_value;
     for (const auto &child : children) {
-        float uct_value = child->get_uct(1.5f);
+        // Prioritize selecting unvisited nodes first
+        if (child->get_visits() == 0) {
+            return child.get();
+        }
+        uct_value = child->get_uct(1.5f);
         if (uct_value > best_uct) {
             best_uct = uct_value;
             best_child = child.get(); // Keep the raw pointer to the best child
@@ -61,31 +59,39 @@ float MCTSNode::simulate() {
     // Returns the result of a random simulation from this node
     Board simulation_board = board.deep_copy();
     uint64_t legal_moves = simulation_board.get_legal_moves();
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    while (!simulation_board.is_game_over()) {
+    // Array that holds bit indices of legal moves
+    std::array<int, 33> moves; // Max 33 legal moves in Othello
+    while (legal_moves > 0) {
+        moves.fill(0); // Initialize all elements to 0
         // Collect all legal moves
-        std::vector<uint64_t> moves;
-        moves.reserve(__builtin_popcountll(legal_moves)); // Reserve space based on the number of legal moves
         uint64_t temp = legal_moves;
+        int i = 0;
         while (temp) {
-            uint64_t move = temp & -temp;
-            moves.push_back(move);
-            temp &= ~move;
+            int index = __builtin_ctzll(temp); // Get the index of the lowest bit set
+            moves[i++] = index; // Store the move in the array
+            temp = temp & ~(uint64_t(1) << index); // Remove the lowest bit set
         }
         // Pick a random move
-        std::uniform_int_distribution<> dis(0, moves.size() - 1);
-        uint64_t move = moves[dis(gen)];
+        std::uniform_int_distribution<> dis(0, i - 1);
+        uint64_t move = uint64_t(1) << moves[dis(gen)];
+        // Debugging check to ensure the move is legal
+        // if ((move & legal_moves) == 0) {
+        //     std::string error_message = "Randomly selected move " + move_to_square(move) + " is not a legal move!";
+        //     throw std::runtime_error(error_message);
+        // }
         simulation_board.make_move(move);
         legal_moves = simulation_board.get_legal_moves();
     }
     // Return the result of the simulation
     const auto scores = simulation_board.get_scores();
+    float result;
     if (root_player) {
-        return static_cast<float>(scores.first - scores.second); // Root player is black
+        result = (scores.first - scores.second) / 64.0f; // Root player is black
     } else {
-        return static_cast<float>(scores.second - scores.first); // Root player is white
+        result = (scores.second - scores.first) / 64.0f; // Root player is white
     }
+    return result;
+
 }
 
 void MCTSNode::backpropagate(const float result) {
@@ -111,5 +117,3 @@ uint64_t MCTSNode::get_best_move() const {
     }
     return best_move; // Return the move leading to the best child
 }
-
-#endif // MCTSNODE_H

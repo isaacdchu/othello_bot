@@ -32,6 +32,10 @@ public:
         std::cout << "MCTS used " << iterations << " iterations." << std::endl;
         // Find the best move from the root node (most visited child)
         const uint64_t best_move = root.get_best_move();
+        if ((best_move & legal_moves) == 0) {
+            std::string error_message = "Best move " + move_to_square(best_move) + " is not a legal move!";
+            throw std::runtime_error(error_message);
+        }
         return best_move; // Return the best move found
     }
 };
