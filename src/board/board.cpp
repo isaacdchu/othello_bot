@@ -104,13 +104,13 @@ void Board::update_legal_moves() {
     generate_moves_left_shift(player, opponent, right_two_columns, left_two_columns, 1);
 
     // Legal moves that capture pieces diagonally down-right
-    generate_moves_right_shift(player, opponent, top_two_rows | left_two_columns, bottom_two_rows | right_two_columns, 9);
+    generate_moves_right_shift(player, opponent, top_two_rows & left_two_columns, bottom_two_rows & right_two_columns, 9);
     // Legal moves that capture pieces diagonally down-left
-    generate_moves_right_shift(player, opponent, top_two_rows | right_two_columns, bottom_two_rows | left_two_columns, 7);
+    generate_moves_right_shift(player, opponent, top_two_rows & right_two_columns, bottom_two_rows & left_two_columns, 7);
     // Legal moves that capture pieces diagonally up-right
-    generate_moves_left_shift(player, opponent, bottom_two_rows | left_two_columns, top_two_rows | right_two_columns, 7);
+    generate_moves_left_shift(player, opponent, bottom_two_rows & left_two_columns, top_two_rows & right_two_columns, 7);
     // Legal moves that capture pieces diagonally up-left
-    generate_moves_left_shift(player, opponent, bottom_two_rows | right_two_columns, top_two_rows | left_two_columns, 9);
+    generate_moves_left_shift(player, opponent, bottom_two_rows & right_two_columns, top_two_rows & left_two_columns, 9);
     legal_moves &= empty_squares; // Ensure legal moves are only on empty squares
 }
 
@@ -183,7 +183,7 @@ void Board::flip_pieces_right_shift(const uint64_t& move, uint64_t& player, uint
     uint64_t temp = ((move & initial_mask) >> shift) & opponent;
     while (temp > 0) {
         flips |= temp;
-        temp = ((temp & wrap_mask) >> shift);
+        temp = ((temp >> shift) & wrap_mask);
         if (temp & player) {
             // We hit our own pieces, so we can flip the opponent's pieces
             player |= flips;
@@ -202,7 +202,7 @@ void Board::flip_pieces_left_shift(const uint64_t& move, uint64_t& player, uint6
     uint64_t temp = ((move & initial_mask) << shift) & opponent;
     while (temp > 0) {
         flips |= temp;
-        temp = ((temp & wrap_mask) << shift);
+        temp = ((temp << shift) & wrap_mask);
         if (temp & player) {
             // We hit our own pieces, so we can flip the opponent's pieces
             player |= flips;

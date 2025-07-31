@@ -86,9 +86,9 @@ float MCTSNode::simulate() {
     const auto scores = simulation_board.get_scores();
     float result;
     if (root_player) {
-        result = (scores.first - scores.second) / 64.0f; // Root player is black
+        result = (scores.first - scores.second) / 16.0f; // Root player is black
     } else {
-        result = (scores.second - scores.first) / 64.0f; // Root player is white
+        result = (scores.second - scores.first) / 16.0f; // Root player is white
     }
     return result;
 
