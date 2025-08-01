@@ -7,6 +7,7 @@
 #include <memory>
 #include <random>
 #include <limits>
+#include <algorithm>
 
 class MCTSNode {
 public:

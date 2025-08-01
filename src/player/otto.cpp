@@ -22,7 +22,8 @@ public:
         MCTSNode root(0, board, nullptr, get_player_color());
         root.initialize_children(); // Initialize children nodes based on legal moves
         unsigned int iterations = 0;
-        for (unsigned int i = 0; i < 1000000; i++) {
+        static const unsigned int max_iterations = 1000000; // number of iterations for MCTS
+        for (unsigned int i = 0; i < max_iterations; i++) {
             auto node = root.select();
             if (node == nullptr) break; // No valid moves available
             const float result = node->simulate();

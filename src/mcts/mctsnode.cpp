@@ -24,6 +24,7 @@ void MCTSNode::initialize_children() {
             child_board.make_move(move); // Make the move on the copied board
             children.emplace_back(std::make_unique<MCTSNode>(move, child_board, this, root_player)); // Create a new child node
         }
+        std::shuffle(children.begin(), children.end(), std::mt19937{std::random_device{}()}); // Shuffle children for randomness
     }
 }
 
@@ -83,13 +84,13 @@ float MCTSNode::simulate() {
     }
     // Return the result of the simulation
     const auto scores = simulation_board.get_scores();
-    float result;
+    int result;
     if (root_player) {
-        result = (scores.first - scores.second) / 16.0f; // Root player is black
+        result = (scores.first - scores.second); // Root player is black
     } else {
-        result = (scores.second - scores.first) / 16.0f; // Root player is white
+        result = (scores.second - scores.first); // Root player is white
     }
-    return result;
+    return std::clamp(result, -1, 1); // Clamp the result to -1, 0, or 1
 
 }
 
