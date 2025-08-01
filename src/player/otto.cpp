@@ -12,20 +12,20 @@ public:
     uint64_t get_move(const Board &board) override {
         // Trivial move cases
         uint64_t legal_moves = board.get_legal_moves();
-        if (legal_moves == 0) {
-            return 0; // No legal moves available
-        }
         if (__builtin_popcountll(legal_moves) == 1) {
             return legal_moves; // Only one legal move available
+        }
+        if (legal_moves == 0x0000102004080000ULL) {
+            return 0x0000000000080000ULL; // First move of the game is symmetric, so we can return a fixed move (d3)
         }
         // Use MCTS to find the best move
         MCTSNode root(0, board, nullptr, get_player_color());
         root.initialize_children(); // Initialize children nodes based on legal moves
         unsigned int iterations = 0;
-        static const unsigned int max_iterations = 1000000; // number of iterations for MCTS
-        for (unsigned int i = 0; i < max_iterations; i++) {
+        unsigned int num_simulations = 1000000;
+        for (unsigned int i = 0; i < num_simulations; i++) {
             auto node = root.select();
-            if (node == nullptr) break; // No valid moves available
+            if (node == nullptr) break;
             const float result = node->simulate();
             node->backpropagate(result);
             iterations++;
