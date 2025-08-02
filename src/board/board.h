@@ -17,6 +17,7 @@ public:
         throw std::runtime_error("Only Board(State initial_state, bool current_player) constructor can be used"); // Default constructor should not be used
     }
     Board(State initial_state, bool current_player);
+    Board(State state, bool current_player, uint64_t legal_moves, bool game_over); // Deep copy constructor
     void pretty_print() const;
     Board deep_copy() const;
     void make_move(uint64_t move);

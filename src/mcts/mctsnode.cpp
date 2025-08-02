@@ -13,19 +13,19 @@ void MCTSNode::initialize_children() {
     children_initialized = true; // Mark children as initialized
     uint64_t temp_legal_moves = board.get_legal_moves(); // Get legal moves for the current board state
     if (temp_legal_moves == 0) {
-        children.reserve(0); // Reserve no space for children
-    } else {
-        children.reserve(__builtin_popcountll(temp_legal_moves)); // Reserve space for children based on the number of legal moves
-        // Populate all children nodes
-        while (temp_legal_moves > 0) {
-            uint64_t move = temp_legal_moves & -temp_legal_moves; // Get the lowest bit set (first legal move)
-            temp_legal_moves &= ~move; // Remove this move from the legal moves
-            Board child_board = board.deep_copy(); // Create a deep copy of the board
-            child_board.make_move(move); // Make the move on the copied board
-            children.emplace_back(std::make_unique<MCTSNode>(move, child_board, this, root_player)); // Create a new child node
-        }
-        std::shuffle(children.begin(), children.end(), std::mt19937{std::random_device{}()}); // Shuffle children for randomness
+        return; // No legal moves available, no children to create
     }
+    children.reserve(__builtin_popcountll(temp_legal_moves)); // Reserve space for children based on the number of legal moves
+    // Populate all children nodes
+    while (temp_legal_moves > 0) {
+        uint64_t move = temp_legal_moves & -temp_legal_moves; // Get the lowest bit set (first legal move)
+        temp_legal_moves &= ~move; // Remove this move from the legal moves
+        Board child_board = board.deep_copy(); // Create a deep copy of the board
+        child_board.make_move(move); // Make the move on the copied board
+        children.emplace_back(std::make_unique<MCTSNode>(move, child_board, this, root_player)); // Create a new child node
+    }
+    static thread_local std::mt19937 gen(std::random_device{}());
+    std::shuffle(children.begin(), children.end(), gen); // Shuffle children for randomness
 }
 
 MCTSNode* MCTSNode::select() {
@@ -43,6 +43,7 @@ MCTSNode* MCTSNode::select() {
         if (child->get_visits() == 0) {
             return child.get();
         }
+        // Get highest UCT value among all children
         uct_value = child->get_uct(1.5f);
         if (uct_value > best_uct) {
             best_uct = uct_value;
@@ -50,7 +51,8 @@ MCTSNode* MCTSNode::select() {
         }
     }
     best_child->initialize_children(); // Ensure the best child has its children initialized
-    return best_child->select(); // Recur on the best child to find an unvisited node
+    // "best_child" is visited, so recur on the best child to find an unvisited node
+    return best_child->select();
 }
 
 float MCTSNode::simulate() {
@@ -58,22 +60,23 @@ float MCTSNode::simulate() {
     Board simulation_board = board.deep_copy();
     uint64_t legal_moves = simulation_board.get_legal_moves();
     // Array that holds bit indices of legal moves
-    std::array<int, 33> moves; // Max 33 legal moves in Othello
-    std::random_device rd;
-    std::mt19937 gen(rd());
+    static thread_local std::mt19937 gen(std::random_device{}());
     while (legal_moves > 0) {
-        moves.fill(0); // Initialize all elements to 0
-        // Collect all legal moves
-        uint64_t temp = legal_moves;
-        int i = 0;
-        while (temp) {
-            int index = __builtin_ctzll(temp); // Get the index of the lowest bit set
-            moves[i++] = index; // Store the move in the array
-            temp = temp & ~(uint64_t(1) << index); // Remove the lowest bit set
+        int num_moves = __builtin_popcountll(legal_moves);
+        std::uniform_int_distribution<> dis(0, num_moves - 1);
+        int move_index = dis(gen);
+        int idx = 0;
+        int chosen_bit = -1; // Should be set to a valid bit index during the loop
+        for (int b = 0; b < 64; b++) {
+            if (!(legal_moves & (uint64_t(1ULL) << b))) continue; // Skip bits that are not set in legal_moves
+            if (idx == move_index) {
+                // Found the chosen move index
+                chosen_bit = b;
+                break;
+            }
+            idx++;
         }
-        // Pick a random move
-        std::uniform_int_distribution<> dis(0, i - 1);
-        uint64_t move = uint64_t(1) << moves[dis(gen)];
+        uint64_t move = uint64_t(1ULL) << chosen_bit;
         // Debugging check to ensure the move is legal
         // if ((move & legal_moves) == 0) {
         //     std::string error_message = "Randomly selected move " + move_to_square(move) + " is not a legal move!";
@@ -84,24 +87,25 @@ float MCTSNode::simulate() {
     }
     // Return the result of the simulation
     const auto scores = simulation_board.get_scores();
-    int result;
+    if (scores.first == scores.second) return 0;
     if (root_player) {
-        result = (scores.first - scores.second); // Root player is black
+        // Root player is black
+        return (scores.first > scores.second) ? 1 : -1;
     } else {
-        result = (scores.second - scores.first); // Root player is white
+        // Root player is white
+        return (scores.second > scores.first) ? 1 : -1;
     }
-    return std::clamp(result, -1, 1); // Clamp the result to -1, 0, or 1
-
 }
 
 void MCTSNode::backpropagate(const float result) {
     // Backpropagation logic to update the node's value and visits
     // Adds "result" to the node's value and increments visits
     // This continues up the tree until (and including) the root node
-    value += result;
-    visits++;
-    if (parent != nullptr) {
-        parent->backpropagate(result); // Propagate the result up to the parent node
+    MCTSNode* node = this;
+    while (node != nullptr) {
+        node->value += result;
+        node->visits++;
+        node = node->parent;
     }
 }
 

@@ -24,6 +24,14 @@ Board::Board(State initial_state, bool current_player) {
     // This logic depends on valid initial_state, current_player, update_legal_moves, and detect_game_over methods
 }
 
+Board::Board(State state, bool current_player, uint64_t legal_moves, bool game_over)
+    : state(state), current_player(current_player), legal_moves(legal_moves), game_over(game_over) {
+    // This constructor is used for deep copying the board
+    // Assumes valid state, current_player, legal_moves, and game_over
+    // It initializes the board with the given state, current player, legal moves, and game over status
+    // Faster than other constructor since it doesn't need to initialize legal moves or game over status
+}
+
 void Board::pretty_print() const {
     std::string all_squares = "";
     for (int i = 0; i < 64; i++) {
@@ -50,7 +58,7 @@ void Board::pretty_print() const {
 }
 
 Board Board::deep_copy() const {
-    Board copy(state, current_player);
+    Board copy(state, current_player, legal_moves, game_over);
     return copy;
 }
 
