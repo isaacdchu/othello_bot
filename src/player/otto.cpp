@@ -23,8 +23,8 @@ public:
         MCTSNode root(0, board, nullptr, get_player_color());
         root.initialize_children(); // Initialize children nodes based on legal moves
         unsigned int iterations = 0;
-        unsigned int max_iterations = 1000000;
-        unsigned int num_simulations = 10;
+        const unsigned int max_iterations = 100000;
+        const unsigned int num_simulations = 10;
         float average_simulation_time = 0.0f;
         for (unsigned int i = 0; i < max_iterations; i++) {
             auto node = root.select();

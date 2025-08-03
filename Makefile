@@ -1,29 +1,40 @@
 CXX = g++-15
-# CXXFLAGS = -fopenmp -O3 -std=c++23 -Wall -Wextra -pedantic
 CXXFLAGS = -std=c++23 -Wall -Wextra -pedantic
 SRC_DIR = src
 BUILD_DIR = build
-TARGET = othello_bot
 
+MAIN_SRC = $(SRC_DIR)/main.cpp
+TRAIN_SRC = $(SRC_DIR)/train.cpp
 
-# Find all .cpp files in src/ and subdirectories
-SOURCES = $(shell find $(SRC_DIR) -name '*.cpp')
-OBJECTS = $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SOURCES))
+# All .cpp files except main.cpp and train.cpp
+SHARED_SOURCES = $(filter-out $(MAIN_SRC) $(TRAIN_SRC), $(shell find $(SRC_DIR) -name '*.cpp'))
+SHARED_OBJECTS = $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SHARED_SOURCES))
 
-all: $(TARGET)
+MAIN_OBJ = $(BUILD_DIR)/main.o
+TRAIN_OBJ = $(BUILD_DIR)/train.o
 
-$(TARGET): $(OBJECTS)
+MAIN_EXE = othello_bot_main
+TRAIN_EXE = othello_bot_train
+
+all: $(MAIN_EXE) $(TRAIN_EXE)
+
+$(MAIN_EXE): $(SHARED_OBJECTS) $(MAIN_OBJ)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
-# Pattern rule to build .o files from .cpp files in any subdirectory
+$(TRAIN_EXE): $(SHARED_OBJECTS) $(TRAIN_OBJ)
+	$(CXX) $(CXXFLAGS) -o $@ $^
+
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
-	rm -rf $(BUILD_DIR) $(TARGET)
+	rm -rf $(BUILD_DIR) $(MAIN_EXE) $(TRAIN_EXE)
 
-run:
-	@$(MAKE) all
-	./$(TARGET)
-.PHONY: all clean run
+run: $(MAIN_EXE)
+	./$(MAIN_EXE)
+
+train: $(TRAIN_EXE)
+	./$(TRAIN_EXE)
+
+.PHONY: all clean run train
