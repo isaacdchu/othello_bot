@@ -22,6 +22,7 @@ public:
     Board deep_copy() const;
     void make_move(uint64_t move);
     uint64_t get_legal_moves() const;
+    static const uint64_t get_legal_moves(const State & state);
     bool get_current_player() const;
     bool is_game_over() const;
     const std::pair<const int, const int> get_scores() const;
@@ -35,6 +36,9 @@ private:
         const uint64_t initial_mask, const uint64_t wrap_mask, const unsigned int shift);
     void generate_moves_left_shift(const uint64_t& player, const uint64_t& opponent, 
         const uint64_t initial_mask, const uint64_t wrap_mask, const unsigned int shift);
+
+    static uint64_t generate_moves_right_shift(const uint64_t initial_mask, const uint64_t wrap_mask, const unsigned int shift);
+    static uint64_t generate_moves_left_shift(const uint64_t initial_mask, const uint64_t wrap_mask, const unsigned int shift);
     void detect_game_over();
     void flip_pieces(const uint64_t& move, uint64_t& player, uint64_t& opponent);
     void flip_pieces_right_shift(const uint64_t& move, uint64_t& player, uint64_t& opponent, 

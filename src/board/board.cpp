@@ -81,6 +81,31 @@ uint64_t Board::get_legal_moves() const {
     return legal_moves;
 }
 
+static uint64_t get_legal_moves(const State & state) {
+    uint64_t legal_moves = 0; // Reset legal moves at the start
+    const uint64_t empty_squares = ~(state.black | state.white);
+
+    // Legal moves that capture pieces below itself
+    legal_moves |= generate_moves_right_shift(top_two_rows, bottom_two_rows, 8);
+    // Legal moves that capture pieces above itself
+    legal_moves |= generate_moves_left_shift(bottom_two_rows, top_two_rows, 8);
+    // Legal moves that capture pieces to the right of itself
+    legal_moves |= generate_moves_right_shift(left_two_columns, right_two_columns, 1);
+    // Legal moves that capture pieces to the left of itself
+    legal_moves |= generate_moves_left_shift(right_two_columns, left_two_columns, 1);
+
+    // Legal moves that capture pieces diagonally down-right
+    legal_moves |= generate_moves_right_shift(top_two_rows & left_two_columns, bottom_two_rows & right_two_columns, 9);
+    // Legal moves that capture pieces diagonally down-left
+    legal_moves |= generate_moves_right_shift(top_two_rows & right_two_columns, bottom_two_rows & left_two_columns, 7);
+    // Legal moves that capture pieces diagonally up-right
+    legal_moves |= generate_moves_left_shift(bottom_two_rows & left_two_columns, top_two_rows & right_two_columns, 7);
+    // Legal moves that capture pieces diagonally up-left
+    legal_moves |= generate_moves_left_shift(bottom_two_rows & right_two_columns, top_two_rows & left_two_columns, 9);
+    legal_moves &= empty_squares; // Ensure legal moves are only on empty squares
+    return legal_moves;
+}
+
 bool Board::get_current_player() const {
     return current_player;
 }
@@ -146,6 +171,29 @@ void Board::generate_moves_left_shift(const uint64_t& player, const uint64_t& op
         temp = (temp & opponent) << shift; // Shift to check next row
     }
     legal_moves |= temp_moves; // Combine all legal moves found
+}
+
+static uint64_t generate_moves_right_shift(const uint64_t initial_mask, const uint64_t wrap_mask, const unsigned int shift) {
+    // Generates legal moves for the right shift direction
+    uint64_t temp_moves = 0;
+    uint64_t temp = (initial_mask >> shift) & wrap_mask;
+    for (int i = 0; i < 6; i++) {
+        temp &= wrap_mask; // Prevent wrapping
+        temp_moves |= temp;
+        temp = (temp >> shift) & wrap_mask; // Shift to check next row
+    }
+    return temp_moves;
+}
+static uint64_t generate_moves_left_shift(const uint64_t initial_mask, const uint64_t wrap_mask, const unsigned int shift) {
+    // Generates legal moves for the left shift direction
+    uint64_t temp_moves = 0;
+    uint64_t temp = (initial_mask << shift) & wrap_mask;
+    for (int i = 0; i < 6; i++) {
+        temp &= wrap_mask; // Prevent wrapping
+        temp_moves |= temp;
+        temp = (temp << shift) & wrap_mask; // Shift to check next row
+    }
+    return temp_moves;
 }
 
 void Board::detect_game_over() {
