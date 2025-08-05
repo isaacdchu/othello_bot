@@ -48,6 +48,7 @@
         "vector": "cpp",
         "algorithm": "cpp",
         "random": "cpp",
-        "iomanip": "cpp"
+        "iomanip": "cpp",
+        "tuple": "cpp"
     }
 }

@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include "neuralnetwork/neuralnetwork.h"
+#include "cnn/cnn.h"
 
 int main();
 
