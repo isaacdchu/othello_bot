@@ -19,6 +19,9 @@ public:
     void set(size_t x, size_t y, size_t z, float value);
     const std::tuple<size_t, size_t, size_t>& shape() const { return std::make_tuple(X, Y, Z); };
     float dot(const Tensor<X, Y, Z> &other) const;
+    const std::array<float, X * Y * Z>& get_data() const {
+        return data; // Return the underlying data array
+    }
 };
 
 #endif // TENSOR_H
