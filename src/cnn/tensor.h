@@ -3,6 +3,9 @@
 
 #include <array>
 #include <algorithm>
+#include <fstream>
+#include <iostream>
+#include <tuple>
 
 // Tensor class for representing a 3D tensor with fixed dimensions
 // X, Y, Z are the dimensions of the tensor
@@ -10,18 +13,60 @@
 template <size_t X, size_t Y, size_t Z>
 class Tensor {
 private:
-    std::array<float, X * Y * Z> data;
+    static constexpr size_t size = X * Y * Z;
+    std::array<float, size> data;
 public:
     Tensor() {
-        data.fill(0.0f); // Initialize all elements to zero
+        // Initialize all elements to zero
+        data.fill(0.0f); 
     }
-    float at(size_t x, size_t y, size_t z) const;
-    void set(size_t x, size_t y, size_t z, float value);
+    Tensor(const std::array<float, size>& init_data) : data(init_data) {
+        // Constructor that initializes the tensor with provided data
+        // Assumes init_data has the correct size (X * Y * Z) and indexing
+    }
+    float at(size_t x, size_t y, size_t z) const {
+        // Assumes valid indices are provided
+        return data[z * X * Y + y * X + x];
+    }
+    void set(size_t x, size_t y, size_t z, float value) {
+        // Assumes valid indices are provided
+        data[z * X * Y + y * X + x] = value;
+    }
     const std::tuple<size_t, size_t, size_t>& shape() const { return std::make_tuple(X, Y, Z); };
-    float dot(const Tensor<X, Y, Z> &other) const;
-    const std::array<float, X * Y * Z>& get_data() const {
+    const std::array<float, size>& get_data() const {
         return data; // Return the underlying data array
     }
+    std::string to_string() const {
+        std::string result;
+        for (size_t i = 0; i < size - 1; i++) {
+            result = result + std::to_string(int(data[i])) + ",";
+        }
+        result += std::to_string(int(data[size - 1]));
+        return result;
+    }
+
+    float dot(const Tensor &other) const {
+        // Assumes the dimensions are compatible for dot product
+        float result = 0.0f;
+        const auto& other_data = other.get_data();
+        for (size_t i = 0; i < data.size(); i++) {
+            result += data[i] * other_data[i];
+        }
+        return result;
+    }
 };
+
+template <size_t A, size_t B, size_t C, size_t n>
+Tensor<A, B, C*n> stack(const std::array<Tensor<A, B, C>, n>& tensors) {
+    // Concatenates multiple tensors along the last dimension
+    std::array<float, A * B * C * n> new_data;
+    size_t index = 0;
+    for (const auto& tensor : tensors) {
+        const auto& tensor_data = tensor.get_data();
+        std::copy(tensor_data.begin(), tensor_data.end(), new_data.begin() + index);
+        index += tensor_data.size();
+    }
+    return Tensor<A, B, C*n>(new_data);
+}
 
 #endif // TENSOR_H

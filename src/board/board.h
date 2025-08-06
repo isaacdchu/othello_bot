@@ -1,6 +1,8 @@
 #ifndef BOARD_H
 #define BOARD_H
 
+#include "../cnn/tensor.h"
+
 #include <cstdint>
 #include <string>
 #include <iostream>
@@ -16,13 +18,14 @@ public:
     Board() {
         throw std::runtime_error("Only Board(State initial_state, bool current_player) constructor can be used"); // Default constructor should not be used
     }
+    Board(Tensor<8, 8, 3> initial_state, bool current_player = true);
     Board(State initial_state, bool current_player);
     Board(State state, bool current_player, uint64_t legal_moves, bool game_over); // Deep copy constructor
     void pretty_print() const;
     Board deep_copy() const;
     void make_move(uint64_t move);
     uint64_t get_legal_moves() const;
-    static const uint64_t get_legal_moves(const State & state);
+    static uint64_t get_legal_moves(const State& state);
     bool get_current_player() const;
     bool is_game_over() const;
     const std::pair<const int, const int> get_scores() const;

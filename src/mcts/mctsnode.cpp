@@ -121,3 +121,16 @@ uint64_t MCTSNode::get_best_move() const {
     }
     return best_move; // Return the move leading to the best child
 }
+
+std::array<float, 64> MCTSNode::get_policy() const {
+    // Returns the policy distribution for all moves from this node
+    std::array<float, 64> policy = {};
+    unsigned int total_visits = 0;
+    for (const auto &child : children) {
+        total_visits += child->get_visits(); // Sum up visits for normalization
+    }
+    for (const auto &child : children) {
+        policy[__builtin_ctzll(child->move_to_get_here)] = static_cast<float>(child->get_visits()) / total_visits;
+    }
+    return policy; // Return the policy distribution
+}

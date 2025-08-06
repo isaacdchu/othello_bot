@@ -3,6 +3,7 @@
 
 #include "../board/board.h"
 #include "../utils/utils.h"
+#include <array>
 #include <vector>
 #include <memory>
 #include <random>
@@ -18,6 +19,7 @@ public:
     float simulate();
     void backpropagate(const float result);
     uint64_t get_best_move() const;
+    std::array<float, 64> get_policy() const;
     unsigned int get_visits() const {
         return visits;
     }

@@ -24,6 +24,25 @@ Board::Board(State initial_state, bool current_player) {
     // This logic depends on valid initial_state, current_player, update_legal_moves, and detect_game_over methods
 }
 
+Board::Board(Tensor<8, 8, 3> initial_state, bool current_player) {
+    // Convert Tensor to State
+    state.black = 0;
+    state.white = 0;
+    for (int i = 0; i < 64; i++) {
+        if (initial_state.at(i % 8, i / 8, 0) > 0.5f) {
+            state.black |= (uint64_t(1) << i); // Set bit for black piece
+        } else if (initial_state.at(i % 8, i / 8, 1) > 0.5f) {
+            state.white |= (uint64_t(1) << i); // Set bit for white piece
+        }
+        if (initial_state.at(i % 8, i / 8, 2) > 0.5f) {
+            legal_moves |= (uint64_t(1) << i); // Set bit for legal move
+        }
+    }
+    this->current_player = current_player;
+    game_over = false;
+    detect_game_over();
+}
+
 Board::Board(State state, bool current_player, uint64_t legal_moves, bool game_over)
     : state(state), current_player(current_player), legal_moves(legal_moves), game_over(game_over) {
     // This constructor is used for deep copying the board
@@ -81,7 +100,7 @@ uint64_t Board::get_legal_moves() const {
     return legal_moves;
 }
 
-static uint64_t get_legal_moves(const State & state) {
+uint64_t Board::get_legal_moves(const State & state) {
     uint64_t legal_moves = 0; // Reset legal moves at the start
     const uint64_t empty_squares = ~(state.black | state.white);
 
@@ -173,7 +192,7 @@ void Board::generate_moves_left_shift(const uint64_t& player, const uint64_t& op
     legal_moves |= temp_moves; // Combine all legal moves found
 }
 
-static uint64_t generate_moves_right_shift(const uint64_t initial_mask, const uint64_t wrap_mask, const unsigned int shift) {
+uint64_t Board::generate_moves_right_shift(const uint64_t initial_mask, const uint64_t wrap_mask, const unsigned int shift) {
     // Generates legal moves for the right shift direction
     uint64_t temp_moves = 0;
     uint64_t temp = (initial_mask >> shift) & wrap_mask;
@@ -184,7 +203,7 @@ static uint64_t generate_moves_right_shift(const uint64_t initial_mask, const ui
     }
     return temp_moves;
 }
-static uint64_t generate_moves_left_shift(const uint64_t initial_mask, const uint64_t wrap_mask, const unsigned int shift) {
+uint64_t Board::generate_moves_left_shift(const uint64_t initial_mask, const uint64_t wrap_mask, const unsigned int shift) {
     // Generates legal moves for the left shift direction
     uint64_t temp_moves = 0;
     uint64_t temp = (initial_mask << shift) & wrap_mask;
