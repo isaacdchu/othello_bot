@@ -39,7 +39,7 @@ public:
     std::string to_string() const {
         std::string result;
         for (size_t i = 0; i < size - 1; i++) {
-            result = result + std::to_string(int(data[i])) + ",";
+            result = result + std::to_string(data[i]) + ",";
         }
         result += std::to_string(int(data[size - 1]));
         return result;
@@ -51,6 +51,15 @@ public:
         const auto& other_data = other.get_data();
         for (size_t i = 0; i < data.size(); i++) {
             result += data[i] * other_data[i];
+        }
+        return result;
+    }
+
+    Tensor<X, Y, Z> operator -(const Tensor<X, Y, Z> &other) const {
+        // Element-wise subtraction
+        Tensor<X, Y, Z> result;
+        for (size_t i = 0; i < size; i++) {
+            result.data[i] = data[i] - other.data[i];
         }
         return result;
     }
