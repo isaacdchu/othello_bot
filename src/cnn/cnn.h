@@ -68,7 +68,7 @@ public:
     Output predict(const std::string &data_path) const;
     Output predict(const Tensor<8, 8, 3> &input) const;
     void save_model(const std::string &model_path) const;
-    static std::pair<Tensor<8, 8, 3>, const int> parse_line(const std::string &line);
+    static std::pair<Tensor<8, 8, 3>, const float> parse_line(const std::string &line);
 
 private:
     // Used for Adam optimizer
@@ -85,6 +85,12 @@ private:
     std::array<float, 64> policy_biases; // Biases for the policy head
     std::array<float, 128> value_weights; // Weights for the dense layer from flattened output to value head
     float value_bias; // Bias for the value head
+
+    // Saved intermediate steps
+    Tensor<8, 8, 32> stacked_result;
+    Tensor<8, 8, 2> flattened_results;
+    Tensor<8, 8, 1> policy_results;
+    float value_result;
 
     Tensor<8, 8, 1> convolution(const Tensor<8, 8, 3> &input, const Tensor<3, 3, 3> &filter, const float bias) const;
     Tensor<8, 8, 2> flatten(const Tensor<8, 8, 32> &input) const;
@@ -134,7 +140,7 @@ private:
         // Gradient of the value loss with respect to the predicted value
         return predicted - target; // dL/dv = v - t
     }
-    Output forward_pass(const Tensor<8, 8, 3> &input_tensor, const Output &label) const;
+    Output forward_pass(const Tensor<8, 8, 3> &input_tensor);
     void backward_pass(const Output &output, const Output &label);
 };
 

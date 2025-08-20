@@ -20,22 +20,40 @@ public:
         // Initialize all elements to zero
         data.fill(0.0f); 
     }
+
     Tensor(const std::array<float, size>& init_data) : data(init_data) {
         // Constructor that initializes the tensor with provided data
         // Assumes init_data has the correct size (X * Y * Z) and indexing
     }
+
     float at(size_t x, size_t y, size_t z) const {
         // Assumes valid indices are provided
         return data[z * X * Y + y * X + x];
     }
+
+    float at(size_t i) const {
+        return data[i];
+    }
+
     void set(size_t x, size_t y, size_t z, float value) {
         // Assumes valid indices are provided
         data[z * X * Y + y * X + x] = value;
     }
+
+    void set(size_t i, float value) {
+        data[i] = value;
+    }
+
+    void clear() {
+        data.fill(0.0f);
+    }
+
     const std::tuple<size_t, size_t, size_t>& shape() const { return std::make_tuple(X, Y, Z); };
+
     const std::array<float, size>& get_data() const {
         return data; // Return the underlying data array
     }
+
     std::string to_string() const {
         std::string result;
         for (size_t i = 0; i < size - 1; i++) {
