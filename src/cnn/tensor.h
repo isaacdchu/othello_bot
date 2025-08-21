@@ -71,7 +71,7 @@ public:
             result += data[i] * other_data[i];
         }
         return result;
-    }
+    }    
 
     Tensor<X, Y, Z> operator -(const Tensor<X, Y, Z> &other) const {
         // Element-wise subtraction
@@ -83,17 +83,32 @@ public:
     }
 };
 
-template <size_t A, size_t B, size_t C, size_t n>
-Tensor<A, B, C*n> stack(const std::array<Tensor<A, B, C>, n>& tensors) {
+template <size_t X, size_t Y, size_t Z, size_t n>
+Tensor<X, Y, Z*n> stack(const std::array<Tensor<X, Y, Z>, n>& tensors) {
     // Concatenates multiple tensors along the last dimension
-    std::array<float, A * B * C * n> new_data;
+    std::array<float, X * Y * Z * n> new_data;
     size_t index = 0;
     for (const auto& tensor : tensors) {
         const auto& tensor_data = tensor.get_data();
         std::copy(tensor_data.begin(), tensor_data.end(), new_data.begin() + index);
         index += tensor_data.size();
     }
-    return Tensor<A, B, C*n>(new_data);
+    return Tensor<X, Y, Z*n>(new_data);
+}
+
+// Scuffed templating (n is only used for padding, not for array purposes)
+template <size_t X, size_t Y, size_t Z, size_t n>
+Tensor<X + 2*n, Y + 2*n, Z> pad(const std::array<Tensor<X, Y, Z>&, n>& input) {
+    // Zero-filled padding
+    Tensor<X + 2*n, Y + 2*n, Z> padded_input = Tensor<X + 2*n, Y + 2*n, Z>();
+    for (size_t z = 0; z < Z; z++) {
+        for (size_t y = 0; y < Y; y++) {
+            for (size_t x = 0; x < X; x++) {
+                padded_input.set(x + n, y + n, z, input[0].at(x, y, z)); // Copy original values
+            }
+        }
+    }
+    return padded_input;
 }
 
 #endif // TENSOR_H

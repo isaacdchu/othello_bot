@@ -7,7 +7,10 @@ void CNN::train(const std::string &data_path) {
         throw std::runtime_error("Failed to open data file: " + data_path);
     }
     while (std::getline(data, line)) {
-        auto [input_tensor, value] = parse_line(line); // Parse the input tensor and value
+        auto data = parse_line(line); // Parse the input tensor and value
+        input_tensor = data.first;
+        const float value = data.second;
+
         // Create the target output
         Board board = Board(input_tensor);
         MCTSNode root = MCTSNode(0, board, nullptr, true); // Black is the root player
@@ -58,25 +61,10 @@ void CNN::save_model(const std::string &model_path) const {
 
 Tensor<8, 8, 1> CNN::convolution(const Tensor<8, 8, 3> &input, const Tensor<3, 3, 3> &filter, const float bias) const {
     // Perform convolution operation on the input tensor with the given filter
-    // Uses "same" padding and stride of 1
-    Tensor<10, 10, 3> padded_input = Tensor<10, 10, 3>();
-    for (size_t z = 0; z < 3; z++) {
-        for (size_t y = 0; y < 8; y++) {
-            for (size_t x = 0; x < 8; x++) {
-                padded_input.set(x + 1, y + 1, z, input.at(x, y, z));
-                if (x == 0) {
-                    padded_input.set(0, y + 1, z, input.at(0, y, z)); // Left padding
-                } else if (x == 7) {
-                    padded_input.set(9, y + 1, z, input.at(7, y, z)); // Right padding
-                }
-                if (y == 0) {
-                    padded_input.set(x + 1, 0, z, input.at(x, 0, z)); // Top padding
-                } else if (y == 7) {
-                    padded_input.set(x + 1, 9, z, input.at(x, 7, z)); // Bottom padding
-                }
-            }
-        }
-    }
+    // Uses zero-filled padding and stride of 1
+    const std::array<Tensor<8, 8, 3>&, 1> temp_input = {input};
+    Tensor<10, 10, 3> padded_input = pad(temp_input);
+
     // Perform convolution operation
     Tensor<8, 8, 1> output_tensor = Tensor<8, 8, 1>();
     for (size_t y = 1; y <= 8; y++) {
@@ -151,7 +139,7 @@ Output CNN::forward_pass(const Tensor<8, 8, 3> &input_tensor) {
 }
 
 void CNN::backward_pass(const Output &output, const Output &label) {
-    // Using Adam optimizer for backpropagation
+    // Calculates necessary gradients for updating parameters
     // Policy gradients
     std::array<float, 64> policy_dL_dZ = {};
     for (size_t i = 0; i < 64; i++) {
@@ -224,10 +212,29 @@ void CNN::backward_pass(const Output &output, const Output &label) {
         filter_dL_dZ.set(i, flatten_dL_dY.at(i) * f_prime_Z);
     }
     std::array<Tensor<3, 3, 3>, 32> filter_dL_dW = {};
+    // dL/dW(k) = X star dL/dZ(k)
+    for (size_t k = 0; k < 32; k++) {
+        for (size_t c = 0; c < 3; c++) {
+            for (size_t v = 0; v < 8; v++) {
+                for (size_t u = 0; u < 8; u++) {
+                    float sum = 0.0f;
+                    for (size_t j = 0; j < 8; j++) {
+                        for (size_t i = 0; i < 8; i++) {
+                            sum += input_tensor.at(i + u, j + v, c) * filter_dL_dZ.at(i, j, k);
+                        }
+                    }
+                    filter_dL_dW[k].set(u, v, c, sum);
+                }
+            }
+        }
+    }
     std::array<float, 32> filter_dL_dB = {};
-    // TODO: finish calculating gradients for filter weights and biases
+    for (size_t i = 0; i < 32; i++) {
+        for (size_t j = 0; j < 64; j++) {
+            filter_dL_dB[i] += filter_dL_dZ.at(i * 64 + j);
+        }
+    }
 
-    // Update time step before next iteration
     adam_t++;
 }
 

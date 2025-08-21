@@ -87,6 +87,7 @@ private:
     float value_bias; // Bias for the value head
 
     // Saved intermediate steps
+    Tensor<8, 8, 3> input_tensor;
     Tensor<8, 8, 32> stacked_result;
     Tensor<8, 8, 2> flattened_results;
     Tensor<8, 8, 1> policy_results;
