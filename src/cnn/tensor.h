@@ -3,6 +3,8 @@
 
 #include <array>
 #include <algorithm>
+#include <bitset>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <tuple>
@@ -26,12 +28,35 @@ public:
         // Assumes init_data has the correct size (X * Y * Z) and indexing
     }
 
+    Tensor(const std::string& line) {
+        // Creates a tensor from a string representation
+        std::string num_string = "";
+        uint32_t bits = 0;
+        float value = 0.0f;
+        size_t i = 0;
+        for (const char c : line) {
+            if (c != ',') {
+                num_string += c;
+                continue;
+            }
+            bits = std::stoul(num_string);
+            std::memcpy(&value, &bits, sizeof(float));
+            data[i++] = value;
+            num_string = "";
+        }
+        bits = std::stoul(num_string);
+        std::memcpy(&value, &bits, sizeof(float));
+        data[i] = value;
+        num_string = "";
+    }
+
     float at(size_t x, size_t y, size_t z) const {
         // Assumes valid indices are provided
         return data[z * X * Y + y * X + x];
     }
 
     float at(size_t i) const {
+        // Assumes valid index is provided
         return data[i];
     }
 
@@ -41,14 +66,16 @@ public:
     }
 
     void set(size_t i, float value) {
+        // Assumes valid index is provided
         data[i] = value;
     }
 
     void clear() {
+        // Sets all values in the tensor to zero
         data.fill(0.0f);
     }
 
-    const std::tuple<size_t, size_t, size_t>& shape() const { return std::make_tuple(X, Y, Z); };
+    const std::tuple<size_t, size_t, size_t> shape() const { return std::make_tuple(X, Y, Z); };
 
     const std::array<float, size>& get_data() const {
         return data; // Return the underlying data array
@@ -59,11 +86,26 @@ public:
         for (size_t i = 0; i < size - 1; i++) {
             result = result + std::to_string(data[i]) + ",";
         }
-        result += std::to_string(int(data[size - 1]));
+        result += std::to_string(data[size - 1]);
         return result;
     }
 
-    float dot(const Tensor &other) const {
+    std::string save() const {
+        // Represents the tensor as a string, with the second part compatible with the constructor
+        // Return format: "number,number,...,number"
+        std::string values;
+        for (size_t i = 0; i < size - 1; i++) {
+            uint32_t bits;
+            std::memcpy(&bits, &data[i], sizeof(float));
+            values += std::to_string(bits) + ",";
+        }
+        uint32_t bits;
+        std::memcpy(&bits, &data[size - 1], sizeof(float));
+        values += std::to_string(bits);
+        return values;
+    }
+
+    float dot(const Tensor<X, Y, Z> &other) const {
         // Assumes the dimensions are compatible for dot product
         float result = 0.0f;
         const auto& other_data = other.get_data();
@@ -71,13 +113,79 @@ public:
             result += data[i] * other_data[i];
         }
         return result;
-    }    
+    }
+
+    Tensor<X, Y, Z> operator *(const float scalar) const {
+        // Scalar multiplication
+        Tensor<X, Y, Z> result;
+        for (size_t i = 0; i < size; i++) {
+            result.set(i, data[i] * scalar);
+        }
+        return result;
+    }
+
+    Tensor<X, Y, Z> operator *(const Tensor<X, Y, Z> &other) const {
+        // Element-wise multiplication
+        Tensor<X, Y, Z> result;
+        for (size_t i = 0; i < size; i++) {
+            result.set(i, data[i] * other.at(i));
+        }
+        return result;
+    }
+
+    void operator *=(const float scalar) {
+        // Element-wise multiplication
+        for (size_t i = 0; i < size; i++) {
+            data[i] *= scalar;
+        }
+    }
+
+    Tensor<X, Y, Z> operator +(const Tensor<X, Y, Z> &other) const {
+        // Element-wise addition
+        Tensor<X, Y, Z> result;
+        for (size_t i = 0; i < size; i++) {
+            result.set(i, data[i] + other.at(i));
+        }
+        return result;
+    }
+
+    Tensor<X, Y, Z> operator +(const float scalar) const {
+        // Element-wise addition
+        Tensor<X, Y, Z> result;
+        for (size_t i = 0; i < size; i++) {
+            result.set(i, data[i] + scalar);
+        }
+        return result;
+    }
+
+    void operator +=(const Tensor<X, Y, Z> &other) {
+        // Element-wise addition
+        for (size_t i = 0; i < size; i++) {
+            data[i] += other.data[i];
+        }
+    }
 
     Tensor<X, Y, Z> operator -(const Tensor<X, Y, Z> &other) const {
         // Element-wise subtraction
         Tensor<X, Y, Z> result;
         for (size_t i = 0; i < size; i++) {
-            result.data[i] = data[i] - other.data[i];
+            result.set(i, data[i] - other.data[i]);
+        }
+        return result;
+    }
+
+    void operator -=(const Tensor<X, Y, Z> &other) {
+        // Element-wise subtraction
+        for (size_t i = 0; i < size; i++) {
+            data[i] -= other.data[i];
+        }
+    }
+
+    Tensor<X, Y, Z> operator -(const float scalar) const {
+        // Element-wise subtraction
+        Tensor<X, Y, Z> result;
+        for (size_t i = 0; i < size; i++) {
+            result.set(i, data[i] - scalar);
         }
         return result;
     }
@@ -98,7 +206,7 @@ Tensor<X, Y, Z*n> stack(const std::array<Tensor<X, Y, Z>, n>& tensors) {
 
 // Scuffed templating (n is only used for padding, not for array purposes)
 template <size_t X, size_t Y, size_t Z, size_t n>
-Tensor<X + 2*n, Y + 2*n, Z> pad(const std::array<Tensor<X, Y, Z>&, n>& input) {
+Tensor<X + 2*n, Y + 2*n, Z> pad(const std::array<Tensor<X, Y, Z>, n>& input) {
     // Zero-filled padding
     Tensor<X + 2*n, Y + 2*n, Z> padded_input = Tensor<X + 2*n, Y + 2*n, Z>();
     for (size_t z = 0; z < Z; z++) {

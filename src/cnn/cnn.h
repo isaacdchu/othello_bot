@@ -4,6 +4,7 @@
 #include "../board/board.h"
 #include "../mcts/mctsnode.h"
 #include "tensor.h"
+#include "adam.h"
 
 #include <string>
 #include <iostream>
@@ -24,7 +25,7 @@ private:
     unsigned int adam_t; // Time step
 
 public:
-    CNN(const float learning_rate = 0.001f) : learning_rate(learning_rate), adam_t(0) {
+    CNN(const float learning_rate = 0.001f) : learning_rate(learning_rate), adam_t(1) {
         // Initialize the CNN with small random weights and biases
         std::random_device rd;
         std::mt19937 gen(rd());
@@ -59,16 +60,86 @@ public:
             value_weights[i] = dist(gen); // Initialize value weights to small random values
         }
         value_bias = dist(gen); // Initialize value bias to a small random value
+
+        // Initialize m_t_prev and v_t_prev variables
+        filter_weights_m_t_prev.fill(Tensor<3, 3, 3>());
+        filter_weights_v_t_prev.fill(Tensor<3, 3, 3>());
+        flatten_weights_m_t_prev.fill(std::array<float, 32>());
+        flatten_weights_v_t_prev.fill(std::array<float, 32>());
+        flatten_biases_m_t_prev.fill(0.0f);
+        flatten_biases_v_t_prev.fill(0.0f);
+        policy_weights_m_t_prev.fill(0.0f);
+        policy_weights_v_t_prev.fill(0.0f);
+        policy_biases_m_t_prev.fill(0.0f);
+        policy_biases_v_t_prev.fill(0.0f);
+        value_weights_m_t_prev.fill(0.0f);
+        value_weights_v_t_prev.fill(0.0f);
+        value_bias_m_t_prev = 0.0f;
+        value_bias_v_t_prev = 0.0f;
     };
-    CNN(const std::string &model_path, const float learning_rate = 0.001f) : learning_rate(learning_rate), adam_t(0) {
-        // TODO
+    CNN(const std::string &model_path, const float learning_rate = 0.001f) : learning_rate(learning_rate), adam_t(1) {
         // Load the model from the specified path
+        std::string line;
+        std::ifstream model_file(model_path);
+        if (!model_file) {
+            throw std::runtime_error("(CNN) Failed to open model file: " + model_path);
+        }
+        // Load all model parameters:
+        for (auto &filter : filter_weights) {
+            std::getline(model_file, line);
+            filter = Tensor<3, 3, 3>(line);
+        }
+        for (float &bias : filter_biases) {
+            std::getline(model_file, line);
+            bias = std::stof(line);
+        }
+        for (auto &weights : flatten_weights) {
+            for (float &weight : weights) {
+                std::getline(model_file, line);
+                weight = std::stof(line);
+            }
+        }
+        for (float &bias : flatten_biases) {
+            std::getline(model_file, line);
+            bias = std::stof(line);
+        }
+        for (float &weight : policy_weights) {
+            std::getline(model_file, line);
+            weight = std::stof(line);
+        }
+        for (float &bias : policy_biases) {
+            std::getline(model_file, line);
+            bias = std::stof(line);
+        }
+        for (float &weight : value_weights) {
+            std::getline(model_file, line);
+            weight = std::stof(line);
+        }
+        std::getline(model_file, line);
+        value_bias = std::stof(line);
     }
-    void train(const std::string &data_path);
+    void train(const std::string &data_path, const unsigned int num_lines);
     Output predict(const std::string &data_path) const;
     Output predict(const Tensor<8, 8, 3> &input) const;
     void save_model(const std::string &model_path) const;
     static std::pair<Tensor<8, 8, 3>, const float> parse_line(const std::string &line);
+
+    std::array<Tensor<3, 3, 3>, 32> filter_weights_m_t_prev;
+    std::array<Tensor<3, 3, 3>, 32> filter_weights_v_t_prev;
+    std::array<float, 32> filter_biases_m_t_prev;
+    std::array<float, 32> filter_biases_v_t_prev;
+    std::array<std::array<float, 32>, 2> flatten_weights_m_t_prev;
+    std::array<std::array<float, 32>, 2> flatten_weights_v_t_prev;
+    std::array<float, 2> flatten_biases_m_t_prev;
+    std::array<float, 2> flatten_biases_v_t_prev;
+    std::array<float, 128 * 64> policy_weights_m_t_prev;
+    std::array<float, 128 * 64> policy_weights_v_t_prev;
+    std::array<float, 64> policy_biases_m_t_prev;
+    std::array<float, 64> policy_biases_v_t_prev;
+    std::array<float, 128> value_weights_m_t_prev;
+    std::array<float, 128> value_weights_v_t_prev;
+    float value_bias_m_t_prev;
+    float value_bias_v_t_prev;
 
 private:
     // Used for Adam optimizer
@@ -102,15 +173,20 @@ private:
         return x > 0 ? x : 0;
     }
     std::array<float, 64> softmax(const std::array<float, 64> &x) const {
-        // o(z) = exp(z) / sum(exp(z_i)) for all i
         std::array<float, 64> result = {};
+        const float max_val = *std::max_element(x.begin(), x.end());
         float sum = epsilon;
-        for (const auto &val : x) {
-            // Calculate the denominator
-            sum += std::exp(val);
+        for (const float val : x) {
+            sum += std::exp(val - max_val);
         }
         for (size_t i = 0; i < 64; i++) {
-            result[i] = std::exp(x[i]) / sum;
+            result[i] = std::exp(x[i] - max_val) / sum;
+            if (result[i] != result[i]) {
+                throw std::runtime_error("softmax result is nan");
+            }
+            if (std::isinf(result[i])) {
+                throw std::runtime_error("softmax result is inf");
+            }
         }
         return result;
     }

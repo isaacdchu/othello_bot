@@ -1,12 +1,16 @@
 #include "cnn.h"
 
-void CNN::train(const std::string &data_path) {
+void CNN::train(const std::string &data_path, const unsigned int num_lines) {
+    // Set num_lines to 0 for all lines
     std::string line;
     std::ifstream data(data_path); // Open the training data file
     if (!data) {
-        throw std::runtime_error("Failed to open data file: " + data_path);
+        throw std::runtime_error("(train) Failed to open data file: " + data_path);
     }
+    unsigned int line_count = 0;
     while (std::getline(data, line)) {
+        if (num_lines != 0 && line_count >= num_lines) break;
+        std::cout << "Processing line " << ++line_count << std::endl;
         auto data = parse_line(line); // Parse the input tensor and value
         input_tensor = data.first;
         const float value = data.second;
@@ -29,8 +33,8 @@ void CNN::train(const std::string &data_path) {
         Output target = {Tensor<8, 8, 1>(policy), static_cast<float>(value)};
         Output results = forward_pass(input_tensor); // Get the CNN's prediction
         backward_pass(results, target); // Update the CNN based on the prediction and label
-        float loss = policy_loss(results.policy.get_data(), target.policy.get_data()); // Calculate the policy loss
-        loss += value_loss(results.value, target.value); // Add the value loss
+        // float loss = policy_loss(results.policy.get_data(), target.policy.get_data()); // Calculate the policy loss
+        // loss += value_loss(results.value, target.value); // Add the value loss
     }
 }
 
@@ -56,13 +60,49 @@ Output CNN::predict(const Tensor<8, 8, 3> &input) const {
 }
 
 void CNN::save_model(const std::string &model_path) const {
-    // TODO: Implement saving the model to a file
+    std::ofstream model_file(model_path);
+    if (!model_file) {
+        throw std::runtime_error("(save_model) Failed to open model file: " + model_path);
+    }
+    // Saves all model parameters:
+    // std::array<Tensor<3, 3, 3>, 32> filter_weights;       // 32 filters of size 3x3
+    for (const auto& filter : filter_weights) {
+        model_file << filter.save() << "\n";
+    }
+    // std::array<float, 32> filter_biases;                  // Biases for each filter
+    for (const float& bias : filter_biases) {
+        model_file << bias << "\n";
+    }
+    // std::array<std::array<float, 32>, 2> flatten_weights; // Two 1x1x32 tensors for flattening
+    for (const auto& weights : flatten_weights) {
+        for (const float weight : weights) {
+            model_file << weight << "\n";
+        }
+    }
+    // std::array<float, 2> flatten_biases;                  // Biases for flattening to 64 outputs
+    for (const float bias : flatten_biases) {
+        model_file << bias << "\n";
+    }
+    // std::array<float, 128 * 64> policy_weights;           // Weights for the dense layer from flattened output to policy head
+    for (const float weight : policy_weights) {
+        model_file << weight << "\n";
+    }
+    // std::array<float, 64> policy_biases;                  // Biases for the policy head
+    for (const float bias : policy_biases) {
+        model_file << bias << "\n";
+    }
+    // std::array<float, 128> value_weights;                 // Weights for the dense layer from flattened output to value head
+    for (const float weight : value_weights) {
+        model_file << weight << "\n";
+    }
+    // float value_bias;                                     // Bias for the value head
+    model_file << value_bias << std::endl;
 }
 
 Tensor<8, 8, 1> CNN::convolution(const Tensor<8, 8, 3> &input, const Tensor<3, 3, 3> &filter, const float bias) const {
     // Perform convolution operation on the input tensor with the given filter
     // Uses zero-filled padding and stride of 1
-    const std::array<Tensor<8, 8, 3>&, 1> temp_input = {input};
+    const std::array<Tensor<8, 8, 3>, 1> temp_input = {input};
     Tensor<10, 10, 3> padded_input = pad(temp_input);
 
     // Perform convolution operation
@@ -78,7 +118,8 @@ Tensor<8, 8, 1> CNN::convolution(const Tensor<8, 8, 3> &input, const Tensor<3, 3
                 }
             }
             // Perform dot product
-            output_tensor.set(x - 1, y - 1, 0, activation_function(region.dot(filter) + bias));
+            const float output_value = activation_function(region.dot(filter) + bias);
+            output_tensor.set(x - 1, y - 1, 0, output_value);
         }
     }
     return output_tensor;
@@ -107,12 +148,14 @@ Tensor<8, 8, 1> CNN::dense_policy(const Tensor<8, 8, 2> &input) const {
     for (size_t i = 0; i < 64; i++) {
         float sum = 0.0f;
         for (size_t j = 0; j < 128; j++) {
-            sum += input.at(j) * policy_weights[i * 128 + j];
+            const float p_w = policy_weights[i * 128 + j];
+            sum += input.at(j) * p_w;
         }
         sum += policy_biases[i];
         output_array[i] = sum;
     }
-    return Tensor<8, 8, 1>(softmax(output_array));
+    const std::array<float, 64> softmaxed_output_array = softmax(output_array);
+    return Tensor<8, 8, 1>(softmaxed_output_array);
 }
 
 float CNN::dense_value(const Tensor<8, 8, 2> &input) const {
@@ -147,7 +190,9 @@ void CNN::backward_pass(const Output &output, const Output &label) {
     }
     std::array<float, 128 * 64> policy_dense_weight_dL_dW = {};
     for (size_t i = 0; i < 128 * 64; i++) {
-        policy_dense_weight_dL_dW[i] = policy_dL_dZ[i % 64] * flattened_results.at(i / 64);
+        const float p_dL_dZ = policy_dL_dZ[i % 64];
+        const float f_result = flattened_results.at(i / 64);
+        policy_dense_weight_dL_dW[i] = p_dL_dZ * f_result;
     }
     std::array<float, 64> policy_dense_bias_dL_dB = {};
     for (size_t i = 0; i < 64; i++) {
@@ -184,15 +229,15 @@ void CNN::backward_pass(const Output &output, const Output &label) {
         flatten_dL_dZ.set(i, total_dense_dL_dY[i]);
     }
     std::array<std::array<float, 32>, 2> flatten_weights_dL_dW = {};
-    std::array<float, 2> flatten_bias_dL_dB = {};
+    std::array<float, 2> flatten_biases_dL_dB = {};
     for (size_t i = 0; i < 32; i++) {
         for (size_t j = 0; j < 64; j++) {
             flatten_weights_dL_dW[0][i] += flatten_dL_dZ.at(j) * stacked_result.at(i * 64 + j);
-            flatten_bias_dL_dB[0] += flatten_dL_dZ.at(j);
+            flatten_biases_dL_dB[0] += flatten_dL_dZ.at(j);
         }
         for (size_t j = 64; j < 128; j++) {
             flatten_weights_dL_dW[1][i] += flatten_dL_dZ.at(j) * stacked_result.at((i - 1) * 64 + j);
-            flatten_bias_dL_dB[1] += flatten_dL_dZ.at(j);
+            flatten_biases_dL_dB[1] += flatten_dL_dZ.at(j);
         }
     }
     Tensor<8, 8, 32> flatten_dL_dY = Tensor<8, 8, 32>();
@@ -211,30 +256,102 @@ void CNN::backward_pass(const Output &output, const Output &label) {
         float f_prime_Z = stacked_result.at(i) > 0 ? 1.0f : 0.0f; // ReLU derivative
         filter_dL_dZ.set(i, flatten_dL_dY.at(i) * f_prime_Z);
     }
-    std::array<Tensor<3, 3, 3>, 32> filter_dL_dW = {};
+    std::array<Tensor<3, 3, 3>, 32> filter_weights_dL_dW = {};
+    const std::array<Tensor<8, 8, 3>, 1> temp_input = {input_tensor};
+    const Tensor<10, 10, 3> padded_input_tensor = pad(temp_input);
     // dL/dW(k) = X star dL/dZ(k)
     for (size_t k = 0; k < 32; k++) {
         for (size_t c = 0; c < 3; c++) {
-            for (size_t v = 0; v < 8; v++) {
-                for (size_t u = 0; u < 8; u++) {
+            for (size_t v = 0; v < 3; v++) {
+                for (size_t u = 0; u < 3; u++) {
                     float sum = 0.0f;
                     for (size_t j = 0; j < 8; j++) {
                         for (size_t i = 0; i < 8; i++) {
-                            sum += input_tensor.at(i + u, j + v, c) * filter_dL_dZ.at(i, j, k);
+                            sum += padded_input_tensor.at(i + u, j + v, c) * filter_dL_dZ.at(i, j, k);
                         }
                     }
-                    filter_dL_dW[k].set(u, v, c, sum);
+                    filter_weights_dL_dW[k].set(u, v, c, sum);
                 }
             }
         }
     }
-    std::array<float, 32> filter_dL_dB = {};
+    std::array<float, 32> filter_biases_dL_dB = {};
     for (size_t i = 0; i < 32; i++) {
         for (size_t j = 0; j < 64; j++) {
-            filter_dL_dB[i] += filter_dL_dZ.at(i * 64 + j);
+            filter_biases_dL_dB[i] += filter_dL_dZ.at(i * 64 + j);
         }
     }
 
+    // Update parameters using Adam optimizer
+    // Policy weights
+    for (size_t i = 0; i < policy_dense_weight_dL_dW.size(); i++) {
+        const float gradient = policy_dense_weight_dL_dW[i];
+        const float update = get_update(gradient, policy_weights_m_t_prev[i], policy_weights_v_t_prev[i], beta_1, beta_2, learning_rate, epsilon, adam_t);
+        // Apply updates
+        policy_weights[i] -= update;
+    }
+
+    // Policy biases
+    for (size_t i = 0; i < policy_dense_bias_dL_dB.size(); i++) {
+        const float gradient = policy_dense_bias_dL_dB[i];
+        const float update = get_update(gradient, policy_biases_m_t_prev[i], policy_biases_v_t_prev[i], beta_1, beta_2, learning_rate, epsilon, adam_t);
+        // Apply updates
+        policy_biases[i] -= update;
+    }
+
+    // Value weights
+    for (size_t i = 0; i < value_dense_weight_dL_dW.size(); i++) {
+        const float gradient = value_dense_weight_dL_dW[i];
+        const float update = get_update(gradient, value_weights_m_t_prev[i], value_weights_v_t_prev[i], beta_1, beta_2, learning_rate, epsilon, adam_t);
+        // Apply updates
+        value_weights[i] -= update;
+    }
+
+    // Value bias
+    const float gradient = value_dense_bias_dL_dB;
+    const float update = get_update(gradient, value_bias_m_t_prev, value_bias_v_t_prev, beta_1, beta_2, learning_rate, epsilon, adam_t);
+    value_bias -= update;
+
+    // Flatten weights
+    for (size_t i = 0; i < flatten_weights_dL_dW.size(); i++) {
+        for (size_t j = 0; j < flatten_weights_dL_dW[i].size(); j++) {
+            const float gradient = flatten_weights_dL_dW[i][j];
+            const float update = get_update(gradient, flatten_weights_m_t_prev[i][j], flatten_weights_v_t_prev[i][j], beta_1, beta_2, learning_rate, epsilon, adam_t);
+            // Apply updates
+            flatten_weights[i][j] -= update;
+        }
+    }
+
+    // Flatten biases
+    for (size_t i = 0; i < flatten_biases_dL_dB.size(); i++) {
+        const float gradient = flatten_biases_dL_dB[i];
+        const float update = get_update(gradient, flatten_biases_m_t_prev[i], flatten_biases_v_t_prev[i], beta_1, beta_2, learning_rate, epsilon, adam_t);
+        flatten_biases[i] -= update;
+    }
+
+    // Filter weights
+    for (size_t i = 0; i < filter_weights_dL_dW.size(); i++) {
+        for (size_t j = 0; j < std::get<0>(filter_weights_dL_dW[i].shape()); j++) {
+            for (size_t k = 0; k < std::get<1>(filter_weights_dL_dW[i].shape()); k++) {
+                for (size_t l = 0; l < std::get<2>(filter_weights_dL_dW[i].shape()); l++) {
+                    const float gradient = filter_weights_dL_dW[i].at(j, k, l);
+                    const float update = get_update(gradient, filter_weights_m_t_prev[i].at(j, k, l), filter_weights_v_t_prev[i].at(j, k, l), beta_1, beta_2, learning_rate, epsilon, adam_t);
+                    // Apply updates
+                    filter_weights[i].set(j, k, l, filter_weights[i].at(j, k, l) - update);
+                }
+            }
+        }
+    }
+    
+    // Filter biases
+    for (size_t i = 0; i < filter_biases_dL_dB.size(); i++) {
+        const float gradient = filter_biases_dL_dB[i];
+        const float update = get_update(gradient, filter_biases_m_t_prev[i], filter_biases_v_t_prev[i], beta_1, beta_2, learning_rate, epsilon, adam_t);
+        // Apply updates
+        filter_biases[i] -= update;
+    }
+
+    // Update time step before next iteration
     adam_t++;
 }
 

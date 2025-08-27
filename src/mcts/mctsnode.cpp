@@ -132,5 +132,5 @@ std::array<float, 64> MCTSNode::get_policy() const {
     for (const auto &child : children) {
         policy[__builtin_ctzll(child->move_to_get_here)] = static_cast<float>(child->get_visits()) / total_visits;
     }
-    return policy; // Return the policy distribution
+    return policy;
 }
