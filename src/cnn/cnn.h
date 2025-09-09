@@ -123,7 +123,7 @@ public:
         std::getline(model_file, line);
         value_bias = std::stof(line);
     }
-    void train(const std::string &data_path, const unsigned int num_lines);
+    void train(const std::string &data_path, const unsigned int num_lines, const unsigned int save_interval = 100, const std::string &model_path = "model/cnn_model.txt");
     Output predict(const Tensor<8, 8, 3> &input) const;
     Metrics evaluate(const std::string &data_path, const unsigned int num_lines) const;
     

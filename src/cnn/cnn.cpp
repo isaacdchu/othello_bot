@@ -1,6 +1,6 @@
 #include "cnn.h"
 
-void CNN::train(const std::string &data_path, const unsigned int num_lines) {
+void CNN::train(const std::string &data_path, const unsigned int num_lines, const unsigned int save_interval, const std::string &model_path) {
     // Set num_lines to 0 for all lines
     std::ifstream data(data_path); // Open the training data file
     if (!data) {
@@ -35,6 +35,10 @@ void CNN::train(const std::string &data_path, const unsigned int num_lines) {
         backward_pass(results, target); // Update the CNN based on the prediction and label
         // float loss = policy_loss(results.policy.get_data(), target.policy.get_data()); // Calculate the policy loss
         // loss += value_loss(results.value, target.value); // Add the value loss
+        if (line_count % save_interval == 0) {
+            std::cout << "Saving model..." << std::endl;
+            save_model(model_path); // Save the model at regular intervals
+        }
     }
 }
 
@@ -85,12 +89,10 @@ Metrics CNN::evaluate(const std::string &data_path, const unsigned int num_lines
         const std::array<float, 64> &policy = root.get_policy(); // Get the policy distribution from MCTS
         const float value = data.second; // Evaluation label
         // Compute and accumulate metrics
-        metrics.policy_loss += policy_loss(results.policy.get_data(), policy);
-        metrics.value_loss += value_loss(results.value, value);
-    }
-    if (line_count > 0) {
-        metrics.policy_loss /= line_count;
-        metrics.value_loss /= line_count;
+        metrics.policy_loss *= (line_count - 1) / line_count;
+        metrics.policy_loss += policy_loss(results.policy.get_data(), policy) / line_count;
+        metrics.value_loss *= (line_count - 1) / line_count;
+        metrics.value_loss += value_loss(results.value, value) / line_count;
     }
     return metrics;
 }
