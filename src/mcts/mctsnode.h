@@ -9,13 +9,14 @@
 #include <random>
 #include <limits>
 #include <algorithm>
+#include <cmath>
 
 class MCTSNode {
 public:
     MCTSNode(const uint64_t move_to_get_here, const Board &board, MCTSNode *parent, const bool root_player);
     const uint64_t move_to_get_here; // The move that led from its parent to this node
     void initialize_children();
-    MCTSNode* select();
+    MCTSNode* select(const std::array<float, 2> &uct_params = {1.5f, 0.0f});
     float simulate();
     void backpropagate(const float result);
     uint64_t get_best_move() const;
@@ -30,11 +31,17 @@ private:
     const bool root_player; // true for black, false for white
     unsigned int visits;
     float value;
-    float get_uct(const float c = 1.4142f) const {
+    float get_uct(const float c, const float w) const {
+        // w is the weight for the board evaluation
         // Assumes that visits > 0
         // unsigned int parent_visits = parent ? parent->get_visits() : 1;
         // In theory, parent visits should never be 0, and root node would never have a UCT value
-        return value / visits + c * sqrt(2 * log(parent->get_visits()) / visits);
+        const float uct = value / visits + c * sqrt(2 * log(parent->get_visits()) / visits);
+        return uct;
+        // if (w == 0.0f) {
+        //     return uct;
+        // }
+        // return uct + w * board_evaluation;
     }
     bool children_initialized;
 };

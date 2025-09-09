@@ -29,6 +29,7 @@ public:
     bool get_current_player() const;
     bool is_game_over() const;
     const std::pair<const int, const int> get_scores() const;
+    Tensor<8, 8, 3> get_state_tensor() const;
 private:
     State state;
     bool current_player; // true for black, false for white

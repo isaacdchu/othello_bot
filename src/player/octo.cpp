@@ -1,15 +1,16 @@
-#ifndef OTTO_H
-#define OTTO_H
+#ifndef OCTO_H
+#define OCTO_H
 
 #include "../player/player.h"
 #include "../mcts/mctsnode.h"
+#include "../cnn/cnn.h"
 #include <chrono>
 
-class Otto : public Player {
+class Octo : public Player {
 public:
-    Otto(const std::string &name, bool player_color)
+    Octo(const std::string &name, bool player_color)
         : Player(name, player_color) {}
-    virtual ~Otto() = default;
+    virtual ~Octo() = default;
     uint64_t get_move(const Board &board) override {
         // Trivial move cases
         uint64_t legal_moves = board.get_legal_moves();
@@ -27,7 +28,7 @@ public:
         const unsigned int num_simulations = 10;
         float average_simulation_time = 0.0f;
         for (unsigned int i = 0; i < max_iterations; i++) {
-            auto node = root.select({1.5f, 0.0f});
+            auto node = root.select({1.5f, 0.5f});
             if (node == nullptr) break;
             for (unsigned int j = 0; j < num_simulations; j++) {
                 auto simulate_start = std::chrono::high_resolution_clock::now();

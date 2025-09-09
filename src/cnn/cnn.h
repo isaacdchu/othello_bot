@@ -18,6 +18,11 @@ struct Output {
     float value; // Evaluation of the board state for the current player (black)
 };
 
+struct Metrics {
+    float policy_loss;
+    float value_loss;
+};
+
 class CNN {
 private:
     // Used for Adam optimizer
@@ -119,8 +124,9 @@ public:
         value_bias = std::stof(line);
     }
     void train(const std::string &data_path, const unsigned int num_lines);
-    Output predict(const std::string &data_path) const;
     Output predict(const Tensor<8, 8, 3> &input) const;
+    Metrics evaluate(const std::string &data_path, const unsigned int num_lines) const;
+    
     void save_model(const std::string &model_path) const;
     static std::pair<Tensor<8, 8, 3>, const float> parse_line(const std::string &line);
 

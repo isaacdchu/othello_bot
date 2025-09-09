@@ -140,6 +140,32 @@ const std::pair<const int, const int> Board::get_scores() const {
     return {black_count, white_count};
 }
 
+Tensor<8, 8, 3> Board::get_state_tensor() const {
+    // Converts the current board state to a Tensor representation for the CNN
+    std::array<float, 64> black_pieces;
+    std::array<float, 64> white_pieces;
+    std::array<float, 64> legal_moves_array;
+
+    for (int i = 0; i < 64; i++) {
+        black_pieces[i] = (state.black & (uint64_t(1) << i)) ? 1.0f : 0.0f;
+        white_pieces[i] = (state.white & (uint64_t(1) << i)) ? 1.0f : 0.0f;
+        legal_moves_array[i] = (legal_moves & (uint64_t(1) << i)) ? 1.0f : 0.0f;
+    }
+    std::array<float, 64 * 3> combined_data;
+    for (int i = 0; i < 64; i++) {
+        // It should always be "black to move" in the tensor representation
+        if (current_player) {
+            combined_data[i] = black_pieces[i];
+            combined_data[i + 64] = white_pieces[i];
+        } else {
+            combined_data[i] = white_pieces[i];
+            combined_data[i + 64] = black_pieces[i];
+        }
+        combined_data[i + 128] = legal_moves_array[i];
+    }
+    return Tensor<8, 8, 3>(combined_data);
+}
+
 void Board::update_legal_moves() {
     legal_moves = 0; // Reset legal moves at the start
     const uint64_t empty_squares = ~(state.black | state.white);

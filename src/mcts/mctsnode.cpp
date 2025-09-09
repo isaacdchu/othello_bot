@@ -28,7 +28,7 @@ void MCTSNode::initialize_children() {
     std::shuffle(children.begin(), children.end(), gen); // Shuffle children for randomness
 }
 
-MCTSNode* MCTSNode::select() {
+MCTSNode* MCTSNode::select(const std::array<float, 2> &uct_params) {
     // Implementation for selecting a child node based on UCT value
     // Don't try to select if there are no children (i.e., game over)
     if (board.is_game_over()) {
@@ -44,7 +44,7 @@ MCTSNode* MCTSNode::select() {
             return child.get();
         }
         // Get highest UCT value among all children
-        uct_value = child->get_uct(1.5f);
+        uct_value = child->get_uct(uct_params[0], uct_params[1]);
         if (uct_value > best_uct) {
             best_uct = uct_value;
             best_child = child.get(); // Keep the raw pointer to the best child
@@ -52,7 +52,7 @@ MCTSNode* MCTSNode::select() {
     }
     best_child->initialize_children(); // Ensure the best child has its children initialized
     // "best_child" is visited, so recur on the best child to find an unvisited node
-    return best_child->select();
+    return best_child->select(uct_params);
 }
 
 float MCTSNode::simulate() {

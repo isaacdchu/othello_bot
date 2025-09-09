@@ -2,11 +2,11 @@
 
 void CNN::train(const std::string &data_path, const unsigned int num_lines) {
     // Set num_lines to 0 for all lines
-    std::string line;
     std::ifstream data(data_path); // Open the training data file
     if (!data) {
         throw std::runtime_error("(train) Failed to open data file: " + data_path);
     }
+    std::string line;
     unsigned int line_count = 0;
     while (std::getline(data, line)) {
         if (num_lines != 0 && line_count >= num_lines) break;
@@ -38,14 +38,6 @@ void CNN::train(const std::string &data_path, const unsigned int num_lines) {
     }
 }
 
-Output CNN::predict(const std::string &data_path) const { 
-    // Placeholder for predicting from a file
-    return {
-        Tensor<8, 8, 1>(),
-        0.0f
-    };
-}
-
 Output CNN::predict(const Tensor<8, 8, 3> &input) const {
     // Perform convolution with each filter and accumulate results
     std::array<Tensor<8, 8, 1>, 32> conv_results = {};
@@ -57,6 +49,50 @@ Output CNN::predict(const Tensor<8, 8, 3> &input) const {
     Tensor<8, 8, 1> policy_output = dense_policy(flattened_result);
     float value_output = dense_value(flattened_result);
     return {policy_output, value_output}; // Return the output structure
+}
+
+Metrics CNN::evaluate(const std::string &data_path, const unsigned int num_lines) const {
+    std::ifstream data(data_path);
+    if (!data) {
+        throw std::runtime_error("(evaluate) Failed to open data file: " + data_path);
+    }
+    std::string line;
+    unsigned int line_count = 0;
+    Tensor<8, 8, 3> temp;
+    Tensor<8, 8, 3> &input_tensor = temp;
+    Metrics metrics = {0.0f, 0.0f};
+    while (std::getline(data, line)) {
+        if (num_lines != 0 && line_count >= num_lines) break;
+        std::cout << "Evaluating line " << ++line_count << std::endl;
+        auto data = parse_line(line); // Parse the input tensor and value
+        input_tensor = data.first;
+        Output results = predict(input_tensor); // Get the CNN's prediction
+
+        // Create the target output
+        Board board = Board(input_tensor);
+        MCTSNode root = MCTSNode(0, board, nullptr, true); // Black is the root player
+        root.initialize_children();
+        const unsigned int max_iterations = 10000;
+        const unsigned int num_simulations = 10;
+        for (unsigned int i = 0; i < max_iterations; i++) {
+            auto node = root.select();
+            if (node == nullptr) break;
+            for (unsigned int j = 0; j < num_simulations; j++) {
+                const float result = node->simulate();
+                node->backpropagate(result);
+            }
+        }
+        const std::array<float, 64> &policy = root.get_policy(); // Get the policy distribution from MCTS
+        const float value = data.second; // Evaluation label
+        // Compute and accumulate metrics
+        metrics.policy_loss += policy_loss(results.policy.get_data(), policy);
+        metrics.value_loss += value_loss(results.value, value);
+    }
+    if (line_count > 0) {
+        metrics.policy_loss /= line_count;
+        metrics.value_loss /= line_count;
+    }
+    return metrics;
 }
 
 void CNN::save_model(const std::string &model_path) const {
