@@ -1,4 +1,4 @@
-#include "board.h"
+#include "board.hpp"
 
 // Constants/Masks filled with 1s except for the name
 static const uint64_t top_two_rows = 0xFFFFFFFFFFFF0000ULL;

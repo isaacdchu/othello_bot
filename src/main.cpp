@@ -1,4 +1,4 @@
-#include "main.h"
+#include "main.hpp"
 
 int main() {
     // Human player_1("Player 1", true);

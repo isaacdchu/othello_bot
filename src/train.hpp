@@ -1,9 +1,9 @@
-#ifndef TRAIN_H
-#define TRAIN_H
+#ifndef TRAIN_HPP
+#define TRAIN_HPP
 
 #include <iostream>
 
-#include "cnn/cnn.h"
+#include "cnn/cnn.hpp"
 
 int main();
 
@@ -75,4 +75,4 @@ int old_main() {
     return 0;
 }
 
-#endif // TRAIN_H
+#endif // TRAIN_HPP

@@ -1,4 +1,4 @@
-#include "cnn/cnn.h"
+#include "cnn/cnn.hpp"
 
 int main() {
     const std::string model_path = "model/cnn_model.txt";

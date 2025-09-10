@@ -1,7 +1,4 @@
-#ifndef RANDOBOT_H
-#define RANDOBOT_H
-
-#include "../player/player.h"
+#include "../player/player.hpp"
 #include <vector>
 #include <random>
 
@@ -36,5 +33,3 @@ public:
         return moves[dist(gen)];
     }
 };
-
-#endif // HUMAN_PLAYER_H

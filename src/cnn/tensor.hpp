@@ -1,5 +1,5 @@
-#ifndef TENSOR_H
-#define TENSOR_H
+#ifndef TENSOR_HPP
+#define TENSOR_HPP
 
 #include <array>
 #include <algorithm>

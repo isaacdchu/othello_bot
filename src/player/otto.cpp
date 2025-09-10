@@ -1,8 +1,5 @@
-#ifndef OTTO_H
-#define OTTO_H
-
-#include "../player/player.h"
-#include "../mcts/mctsnode.h"
+#include "../player/player.hpp"
+#include "../mcts/mctsnode.hpp"
 #include <chrono>
 
 class Otto : public Player {
@@ -50,5 +47,3 @@ public:
         return best_move; // Return the best move found
     }
 };
-
-#endif // OTTO_H

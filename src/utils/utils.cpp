@@ -1,4 +1,4 @@
-#include "utils.h"
+#include "utils.hpp"
 
 std::string move_to_square(uint64_t move) {
     if (move == 0)

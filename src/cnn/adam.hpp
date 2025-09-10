@@ -1,5 +1,5 @@
-#ifndef ADAM_H
-#define ADAM_H
+#ifndef ADAM_HPP
+#define ADAM_HPP
 
 #include <cmath>
 
@@ -46,4 +46,4 @@ inline float get_update(const float gradient, float m_t_prev, float v_t_prev, co
     return update;
 }
 
-#endif // ADAM_H
+#endif // ADAM_HPP

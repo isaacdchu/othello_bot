@@ -1,8 +1,8 @@
-#ifndef MCTS_NODE_H
-#define MCTS_NODE_H
+#ifndef MCTS_NODE_HPP
+#define MCTS_NODE_HPP
 
-#include "../board/board.h"
-#include "../utils/utils.h"
+#include "../board/board.hpp"
+#include "../utils/utils.hpp"
 #include <array>
 #include <vector>
 #include <memory>
@@ -46,4 +46,4 @@ private:
     bool children_initialized;
 };
 
-#endif // MCTS_NODE_H
+#endif // MCTS_NODE_HPP

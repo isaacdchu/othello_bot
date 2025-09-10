@@ -1,4 +1,4 @@
-#include "cnn.h"
+#include "cnn.hpp"
 
 void CNN::train(const std::string &data_path, const unsigned int num_lines, const unsigned int save_interval, const std::string &model_path) {
     // Set num_lines to 0 for all lines

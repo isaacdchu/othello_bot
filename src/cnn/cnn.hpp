@@ -1,10 +1,10 @@
-#ifndef CNN_H
-#define CNN_H
+#ifndef CNN_HPP
+#define CNN_HPP
 
-#include "../board/board.h"
-#include "../mcts/mctsnode.h"
-#include "tensor.h"
-#include "adam.h"
+#include "../board/board.hpp"
+#include "../mcts/mctsnode.hpp"
+#include "tensor.hpp"
+#include "adam.hpp"
 
 #include <string>
 #include <iostream>
@@ -227,4 +227,4 @@ private:
     void backward_pass(const Output &output, const Output &label);
 };
 
-#endif // CNN_H
+#endif // CNN_HPP

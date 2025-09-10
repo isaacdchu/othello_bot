@@ -1,9 +1,6 @@
-#ifndef OCTO_H
-#define OCTO_H
-
-#include "../player/player.h"
-#include "../mcts/mctsnode.h"
-#include "../cnn/cnn.h"
+#include "../player/player.hpp"
+#include "../mcts/mctsnode.hpp"
+#include "../cnn/cnn.hpp"
 #include <chrono>
 
 class Octo : public Player {
@@ -51,5 +48,3 @@ public:
         return best_move; // Return the best move found
     }
 };
-
-#endif // OTTO_H

@@ -1,7 +1,7 @@
-#ifndef BOARD_H
-#define BOARD_H
+#ifndef BOARD_HPP
+#define BOARD_HPP
 
-#include "../cnn/tensor.h"
+#include "../cnn/tensor.hpp"
 
 #include <cstdint>
 #include <string>
@@ -51,4 +51,4 @@ private:
         const uint64_t initial_mask, const uint64_t wrap_mask, const unsigned int shift);
 };
 
-#endif // BOARD_H
+#endif // BOARD_HPP

@@ -1,4 +1,4 @@
-#include "train.h"
+#include "train.hpp"
 
 int main() {
     std::cout << "Initializing..." << std::endl;

@@ -1,7 +1,4 @@
-#ifndef HUMAN_H
-#define HUMAN_H
-
-#include "../player/player.h"
+#include "../player/player.hpp"
 
 class Human : public Player {
 public:
@@ -29,5 +26,3 @@ public:
         return move; // Return the valid move
     }
 };
-
-#endif // HUMAN_PLAYER_H

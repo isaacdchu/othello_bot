@@ -1,8 +1,8 @@
-#ifndef PLAYER_H
-#define PLAYER_H
+#ifndef PLAYER_HPP
+#define PLAYER_HPP
 
-#include "../board/board.h"
-#include "../utils/utils.h"
+#include "../board/board.hpp"
+#include "../utils/utils.hpp"
 
 class Player {
 public:
@@ -21,4 +21,4 @@ private:
     bool player_color; // true for black, false for white
 };
 
-#endif // PLAYER_H
+#endif // PLAYER_HPP
