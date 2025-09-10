@@ -24,3 +24,11 @@ make run
 # Source of Training Data
 - I used training data from Egaroucid, which can be found here
 - https://www.egaroucid.nyanyan.dev/en/technology/train-data/
+
+# Todo
+- Full refactor of CNN class
+    - Abstraction for layers (convolutional layers/dense layers)
+    - Abstraction for model optimizers (Adam, SGD, etc)
+    - Easier configuration (config file, saving, training, and evaluating)
+    - Batch processing for training (epochs)
+    - Data handling improvements
