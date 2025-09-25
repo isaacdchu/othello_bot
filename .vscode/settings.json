@@ -49,6 +49,7 @@
         "algorithm": "cpp",
         "random": "cpp",
         "iomanip": "cpp",
-        "tuple": "cpp"
+        "tuple": "cpp",
+        "valarray": "cpp"
     }
 }

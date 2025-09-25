@@ -1,7 +1,7 @@
 #ifndef BOARD_HPP
 #define BOARD_HPP
 
-#include "../cnn/tensor.hpp"
+#include "../cnn/tensor3d.hpp"
 
 #include <cstdint>
 #include <string>
@@ -18,7 +18,7 @@ public:
     Board() {
         throw std::runtime_error("Only Board(State initial_state, bool current_player) constructor can be used"); // Default constructor should not be used
     }
-    Board(Tensor<8, 8, 3> initial_state, bool current_player = true);
+    Board(Tensor3D<8, 8, 3> initial_state, bool current_player = true);
     Board(State initial_state, bool current_player);
     Board(State state, bool current_player, uint64_t legal_moves, bool game_over); // Deep copy constructor
     void pretty_print() const;
@@ -29,7 +29,7 @@ public:
     bool get_current_player() const;
     bool is_game_over() const;
     const std::pair<const int, const int> get_scores() const;
-    Tensor<8, 8, 3> get_state_tensor() const;
+    Tensor3D<8, 8, 3> get_state_tensor() const;
 private:
     State state;
     bool current_player; // true for black, false for white
@@ -51,4 +51,4 @@ private:
         const uint64_t initial_mask, const uint64_t wrap_mask, const unsigned int shift);
 };
 
-#endif // BOARD_HPP
+#endif // BOARD_H

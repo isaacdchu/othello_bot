@@ -24,7 +24,7 @@ Board::Board(State initial_state, bool current_player) {
     // This logic depends on valid initial_state, current_player, update_legal_moves, and detect_game_over methods
 }
 
-Board::Board(Tensor<8, 8, 3> initial_state, bool current_player) {
+Board::Board(Tensor3D<8, 8, 3> initial_state, bool current_player) {
     // Convert Tensor to State
     state.black = 0;
     state.white = 0;
@@ -140,7 +140,7 @@ const std::pair<const int, const int> Board::get_scores() const {
     return {black_count, white_count};
 }
 
-Tensor<8, 8, 3> Board::get_state_tensor() const {
+Tensor3D<8, 8, 3> Board::get_state_tensor() const {
     // Converts the current board state to a Tensor representation for the CNN
     std::array<float, 64> black_pieces;
     std::array<float, 64> white_pieces;
@@ -163,7 +163,7 @@ Tensor<8, 8, 3> Board::get_state_tensor() const {
         }
         combined_data[i + 128] = legal_moves_array[i];
     }
-    return Tensor<8, 8, 3>(combined_data);
+    return Tensor3D<8, 8, 3>(combined_data);
 }
 
 void Board::update_legal_moves() {
