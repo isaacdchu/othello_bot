@@ -25,9 +25,16 @@ public:
         result_data.fill(0.0f);
     }
 
+    Tensor3D(const TensorInterface& other) {
+        // Initialize from another TensorInterface
+        for (size_t i = 0; i < X * Y * Z; i++) {
+            data[i] = other.at(i);
+        }
+    }
+
     Tensor3D operator+(const Tensor3D& other) const {
         for (size_t i = 0; i < X * Y * Z; i++) {
-            result_data[i] = data[i] + other.data[i];
+            result_data[i] = data[i] + other.at(i);
         }
         return Tensor3D(result_data);
     }
@@ -41,7 +48,7 @@ public:
 
     Tensor3D& operator+=(const Tensor3D& other) {
         for (size_t i = 0; i < X * Y * Z; i++) {
-            data[i] += other.data[i];
+            data[i] += other.at(i);
         }
         return *this;
     }
@@ -55,7 +62,7 @@ public:
 
     Tensor3D operator-(const Tensor3D& other) const {
         for (size_t i = 0; i < X * Y * Z; i++) {
-            result_data[i] = data[i] - other.data[i];
+            result_data[i] = data[i] - other.at(i);
         }
         return Tensor3D(result_data);
     }
@@ -69,7 +76,7 @@ public:
 
     Tensor3D& operator-=(const Tensor3D& other) {
         for (size_t i = 0; i < X * Y * Z; i++) {
-            data[i] -= other.data[i];
+            data[i] -= other.at(i);
         }
         return *this;
     }
@@ -115,6 +122,10 @@ public:
         }
         result += ")";
         return result;
+    }
+
+    constexpr size_t size() const {
+        return X * Y * Z;
     }
 };
 
