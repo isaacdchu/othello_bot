@@ -24,10 +24,13 @@ public:
     CNN() {
         std::unique_ptr<ConvLayer<8, 8, 3, filter_size, stride, stride, num_filters>> conv_layer = std::make_unique<ConvLayer<8, 8, 3, filter_size, stride, stride, num_filters>>();
         std::unique_ptr<FlatLayer<8, 8, num_filters, 8 * 8 * num_filters>> flat_layer = std::make_unique<FlatLayer<8, 8, num_filters, 8 * 8 * num_filters>>();
-        std::unique_ptr<DenseLayer<8 * 8 * num_filters, 1>> dense_layer = std::make_unique<DenseLayer<8 * 8 * num_filters, 1>>();
+        std::unique_ptr<DenseLayer<8 * 8 * num_filters, 512>> dense_layer_1 = std::make_unique<DenseLayer<8 * 8 * num_filters, 512>>();
+        std::unique_ptr<DenseLayer<512, 1>> dense_layer_2 = std::make_unique<DenseLayer<512, 1>>();
+
         layers.push_back(std::move(conv_layer));
         layers.push_back(std::move(flat_layer));
-        layers.push_back(std::move(dense_layer));
+        layers.push_back(std::move(dense_layer_1));
+        layers.push_back(std::move(dense_layer_2));
     }
 
     // Accept concrete input tensor (simpler and safe)
@@ -50,6 +53,14 @@ public:
         auto concrete = dynamic_cast<Tensor3D<8,8,3>*>(current_grad.get());
         if (!concrete) throw std::runtime_error("CNN::backward: final grad is not Tensor3D<8,8,3>");
         return *concrete;
+    }
+
+    std::vector<std::unique_ptr<LayerInterface>> get_layers() const {
+        std::vector<std::unique_ptr<LayerInterface>> layer_refs;
+        for (const auto& layer : layers) {
+            layer_refs.push_back(std::unique_ptr<LayerInterface>(layer->clone()));
+        }
+        return layer_refs;
     }
 };
 

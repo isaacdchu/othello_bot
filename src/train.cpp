@@ -8,5 +8,8 @@ int main() {
     Tensor3D<1, 1, 1> output = model.forward(input);
     std::cout << "Forward pass completed." << std::endl;
     std::cout << "Output tensor: " << output.to_string() << std::endl;
+    for (const auto& layer : model.get_layers()) {
+        std::cout << layer->to_string(false) << std::endl;
+    }
     return 0;
 }

@@ -13,6 +13,8 @@ public:
     // Use polymorphic interface: return heap-allocated TensorInterface objects.
     virtual std::unique_ptr<TensorInterface> forward(const TensorInterface& input) = 0;
     virtual std::unique_ptr<TensorInterface> backward(const TensorInterface& grad_output) = 0;
+    virtual std::string to_string(bool details = false) const = 0;
+    virtual LayerInterface* clone() const = 0;
 };
 
 #endif // LAYER_HPP

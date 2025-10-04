@@ -23,6 +23,9 @@ public:
         biases = Tensor3D<1, 1, C_out>(0.0f);
     }
 
+    ConvLayer(const ConvLayer& other)
+        : weights(other.weights), biases(other.biases) {}
+
     std::unique_ptr<TensorInterface> forward(const TensorInterface& input) override {
         Tensor3D<X_out, Y_out, C_out> output;
         for (size_t c_out = 0; c_out < C_out; c_out++) {
@@ -61,6 +64,19 @@ public:
         Tensor3D<X_in, Y_in, C_in> grad_input = Tensor3D<X_in, Y_in, C_in>(0.0f);
         // Calculate dL/dW, dL/db, and dL/dInput
         return std::make_unique<Tensor3D<X_in, Y_in, C_in>>(grad_input);
+    }
+
+    std::string to_string(bool details = false) const override {
+        std::string str = "ConvLayer(" + std::to_string(X_in) + "x" + std::to_string(Y_in) + "x" + std::to_string(C_in) +
+               " -> " + std::to_string(X_out) + "x" + std::to_string(Y_out) + "x" + std::to_string(C_out) + ")" +
+               " [K=" + std::to_string(K) + ", S=" + std::to_string(S) + ", P=" + std::to_string(P) + "]";
+        if (!details) return str;
+        str += "\nWeights:\n" + weights.to_string() + "\nBiases:\n" + biases.to_string();
+        return str;
+    }
+
+    LayerInterface* clone() const override {
+        return new ConvLayer<X_in, Y_in, C_in, K, S, P, C_out>(*this);
     }
 };
 

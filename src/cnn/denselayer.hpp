@@ -28,6 +28,9 @@ public:
         pre_activation_output = Tensor3D<N_out, 1, 1>(0.0f);
     }
 
+    DenseLayer(const DenseLayer& other) 
+        : weights(other.weights), biases(other.biases), last_input(other.last_input), pre_activation_output(other.pre_activation_output) {}
+
     std::unique_ptr<TensorInterface> forward(const TensorInterface& input) override {
         last_input = Tensor3D<N_in, 1, 1>(input);
         Tensor3D<N_out, 1, 1> output;
@@ -54,7 +57,7 @@ public:
         for (size_t i = 0; i < N_out; i++) {
             delta.at(i) = grad_output.at(i) * pre_activation_output.at(i);
         }
-        
+
         // dL/dW = delta * input^T
         Tensor3D<N_in, N_out, 1> dL_dW;
         for (size_t i = 0; i < N_in; i++) {
@@ -77,6 +80,17 @@ public:
         }
 
         return std::make_unique<Tensor3D<N_in, 1, 1>>(dL_dInput);
+    }
+
+    std::string to_string(bool details = false) const override {
+        std::string str = "DenseLayer<" + std::to_string(N_in) + ", " + std::to_string(N_out) + ">";
+        if (!details) return str;
+        str += "\nWeights:\n" + weights.to_string() + "\nBiases:\n" + biases.to_string();
+        return str;
+    }
+
+    LayerInterface* clone() const override {
+        return new DenseLayer<N_in, N_out>(*this);
     }
 };
 

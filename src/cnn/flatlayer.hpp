@@ -33,6 +33,17 @@ public:
         }
         return std::make_unique<Tensor3D<X_in, Y_in, C_in>>(grad_input);
     }
+
+    std::string to_string(bool details = false) const override {
+        (void)details; // suppress unused-parameter warning
+        std::string str = "FlatLayer(" + std::to_string(X_in) + "x" + std::to_string(Y_in) + "x" + std::to_string(C_in) +
+               " -> " + std::to_string(N_out) + "x1x1)";
+        return str;
+    }
+
+    LayerInterface* clone() const override {
+        return new FlatLayer<X_in, Y_in, C_in, N_out>(*this);
+    }
 };
 
 #endif // FLATLAYER_HPP
