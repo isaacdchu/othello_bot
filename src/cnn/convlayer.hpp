@@ -3,6 +3,7 @@
 
 #include "layer.hpp"
 #include "tensor3d.hpp"
+#include "activation.hpp"
 #include <memory>
 #include <algorithm>
 
@@ -22,7 +23,6 @@ public:
         biases = Tensor3D<1, 1, C_out>(0.0f);
     }
 
-    // change signature to return a unique_ptr<TensorInterface>
     std::unique_ptr<TensorInterface> forward(const TensorInterface& input) override {
         Tensor3D<X_out, Y_out, C_out> output;
         for (size_t c_out = 0; c_out < C_out; c_out++) {
@@ -34,11 +34,14 @@ public:
                             for (size_t kx = 0; kx < K; kx++) {
                                 int in_x = x * S + kx - P;
                                 int in_y = y * S + ky - P;
-                                if (in_x >= 0 && in_y >= 0) {
-                                    if ((unsigned)in_x < X_in && (unsigned)in_y < Y_in) {
-                                        conv_sum += input.at(in_x, in_y, c_in) * weights.at(kx, ky, c_in + c_out * C_in);
-                                    }
+                                if (in_x < 0 || in_y < 0) {
+                                    continue;
                                 }
+                                // "unsigned" cast since in_x and in_y are guarenteed non-negative from above if statement
+                                if ((unsigned)in_x >= X_in || (unsigned)in_y >= Y_in) {
+                                    continue;
+                                }
+                                conv_sum += input.at(in_x, in_y, c_in) * weights.at(kx, ky, c_in + c_out * C_in);
                             }
                         }
                     }
@@ -48,19 +51,15 @@ public:
             }
         }
         // Activation (ReLU)
-        for (size_t c_out = 0; c_out < C_out; c_out++) {
-            for (size_t y = 0; y < Y_out; y++) {
-                for (size_t x = 0; x < X_out; x++) {
-                    output.at(x, y, c_out) = std::max(0.0f, output.at(x, y, c_out));
-                }
-            }
-        }
+        relu(output);
+        // Return as unique_ptr<TensorInterface>
         return std::make_unique<Tensor3D<X_out, Y_out, C_out>>(output);
     }
 
     std::unique_ptr<TensorInterface> backward(const TensorInterface& grad_output) override {
         (void)grad_output; // suppress unused-parameter warning until implemented
         Tensor3D<X_in, Y_in, C_in> grad_input = Tensor3D<X_in, Y_in, C_in>(0.0f);
+        // Calculate dL/dW, dL/db, and dL/dInput
         return std::make_unique<Tensor3D<X_in, Y_in, C_in>>(grad_input);
     }
 };

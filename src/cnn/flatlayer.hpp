@@ -2,6 +2,9 @@
 #define FLATLAYER_HPP
 
 #include "layer.hpp"
+#include "tensor3d.hpp"
+#include "tensorinterface.hpp"
+
 #include <memory>
 
 template<size_t X_in, size_t Y_in, size_t C_in, size_t N_out>
@@ -12,23 +15,22 @@ public:
     FlatLayer() {
         // Initialize any necessary parameters
     }
+
     std::unique_ptr<TensorInterface> forward(const TensorInterface& input) override {
-        // cast input to Tensor3D concrete if needed (you can read via TensorInterface methods directly)
+        // Reshape input tensor to output tensor
         Tensor3D<N_out, 1, 1> output;
-        for (size_t c = 0; c < C_in; c++) {
-            for (size_t y = 0; y < Y_in; y++) {
-                for (size_t x = 0; x < X_in; x++) {
-                    size_t index = c * (X_in * Y_in) + y * X_in + x;
-                    output.at(index, 0, 0) = input.at(x, y, c);
-                }
-            }
+        for (size_t i = 0; i < input.size(); i++) {
+            output.at(i) = input.at(i);
         }
         return std::make_unique<Tensor3D<N_out, 1, 1>>(output);
     }
 
     std::unique_ptr<TensorInterface> backward(const TensorInterface& grad_output) override {
-        (void)grad_output; // suppress unused-parameter warning until implemented
+        // Gradient w.r.t. input is reshaped gradient from output
         Tensor3D<X_in, Y_in, C_in> grad_input = Tensor3D<X_in, Y_in, C_in>(0.0f);
+        for (size_t i = 0; i < grad_output.size(); i++) {
+            grad_input.at(i) = grad_output.at(i);
+        }
         return std::make_unique<Tensor3D<X_in, Y_in, C_in>>(grad_input);
     }
 };
