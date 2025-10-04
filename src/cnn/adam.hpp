@@ -16,6 +16,7 @@ public:
     }
 
     void update(LayerInterface& layer) override {
+        (void)layer; // avoid unused-parameter warning until implementation
         // Implement Adam update logic here
     }
 };

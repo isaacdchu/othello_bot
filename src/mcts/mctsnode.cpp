@@ -1,4 +1,4 @@
-#include "mctsnode.h"
+#include "mctsnode.hpp"
 
 MCTSNode::MCTSNode(const uint64_t move_to_get_here, const Board &board, MCTSNode *parent, const bool root_player)
     : move_to_get_here(move_to_get_here), board(board), parent(parent), root_player(root_player), visits(0), value(0.0f) {

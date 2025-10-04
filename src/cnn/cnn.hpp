@@ -9,13 +9,15 @@
 
 #include <vector>
 #include <array>
+#include <memory>
+#include <stdexcept>
 
 template<size_t num_filters>
 class CNN {
 private:
-    constexpr size_t filter_size = 3;
-    constexpr size_t stride = 1;
-    constexpr size_t padding = 1;
+    static constexpr size_t filter_size = 3;
+    static constexpr size_t stride = 1;
+    static constexpr size_t padding = 1;
     std::vector<std::unique_ptr<LayerInterface>> layers;
 
 public:
@@ -28,22 +30,26 @@ public:
         layers.push_back(std::move(dense_layer));
     }
 
-    TensorInterface forward(const TensorInterface& input) {
-        std::unique_ptr<TensorInterface> current_input = std::make_unique<TensorInterface>(input);
+    // Accept concrete input tensor (simpler and safe)
+    Tensor3D<1, 1, 1> forward(const Tensor3D<8, 8, 3>& input) {
+        std::unique_ptr<TensorInterface> current_input = std::make_unique<Tensor3D<8, 8, 3>>(input);
         for (const auto& layer : layers) {
-            current_input = std::make_unique<TensorInterface>(layer->forward(*current_input));
+            current_input = layer->forward(*current_input);
         }
-        const TensorInterface output = *current_input;
-        return output;
+        auto concrete = dynamic_cast<Tensor3D<1,1,1>*>(current_input.get());
+        if (!concrete) throw std::runtime_error("CNN::forward: final layer did not return Tensor3D<1,1,1>");
+        return *concrete;
     }
-
-    TensorInterface backward(const TensorInterface& grad_output) {
-        std::unique_ptr<TensorInterface> current_grad = std::make_unique<TensorInterface>(grad_output);
+    
+    // Backward: accept concrete gradient for output and propagate backwards, return gradient w.r.t. input
+    Tensor3D<8, 8, 3> backward(const Tensor3D<1, 1, 1>& grad_output) {
+        std::unique_ptr<TensorInterface> current_grad = std::make_unique<Tensor3D<1, 1, 1>>(grad_output);
         for (auto it = layers.rbegin(); it != layers.rend(); ++it) {
-            current_grad = std::make_unique<TensorInterface>((*it)->backward(*current_grad));
+            current_grad = (*it)->backward(*current_grad);
         }
-        const TensorInterface output = *current_grad;
-        return output;
+        auto concrete = dynamic_cast<Tensor3D<8,8,3>*>(current_grad.get());
+        if (!concrete) throw std::runtime_error("CNN::backward: final grad is not Tensor3D<8,8,3>");
+        return *concrete;
     }
 };
 

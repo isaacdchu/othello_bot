@@ -4,6 +4,7 @@
 #include "tensorinterface.hpp"
 
 #include <array>
+#include <string>
 
 template<size_t X, size_t Y, size_t Z>
 class Tensor3D : public TensorInterface {
@@ -94,6 +95,26 @@ public:
 
     float& at(const size_t i) {
         return data[i];
+    }
+
+    std::string to_string() const {
+        std::string result = "Tensor3D(";
+        for (size_t k = 0; k < Z; k++) {
+            result += "[";
+            for (size_t j = 0; j < Y; j++) {
+                result += "[";
+                for (size_t i = 0; i < X; i++) {
+                    result += std::to_string(at(i, j, k));
+                    if (i < X - 1) result += ", ";
+                }
+                result += "]";
+                if (j < Y - 1) result += ", ";
+            }
+            result += "]";
+            if (k < Z - 1) result += ", ";
+        }
+        result += ")";
+        return result;
     }
 };
 

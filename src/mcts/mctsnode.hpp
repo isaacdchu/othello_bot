@@ -32,7 +32,7 @@ private:
     unsigned int visits;
     float value;
     float get_uct(const float c, const float w) const {
-        // w is the weight for the board evaluation
+        (void)w; // suppress unused-parameter warning if w not used yet
         // Assumes that visits > 0
         // unsigned int parent_visits = parent ? parent->get_visits() : 1;
         // In theory, parent visits should never be 0, and root node would never have a UCT value
