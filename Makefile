@@ -1,5 +1,6 @@
 CXX = g++-15
 CXXFLAGS = -std=c++23 -Wall -Wextra -pedantic
+DEPFLAGS = -MMD -MP
 SRC_DIR = src
 BUILD_DIR = build
 
@@ -14,6 +15,9 @@ SHARED_OBJECTS = $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SHARED_SOURCES))
 MAIN_OBJ = $(BUILD_DIR)/main.o
 TRAIN_OBJ = $(BUILD_DIR)/train.o
 EVALUATE_OBJ = $(BUILD_DIR)/evaluate.o
+
+OBJECTS = $(SHARED_OBJECTS) $(MAIN_OBJ) $(TRAIN_OBJ) $(EVALUATE_OBJ)
+DEPS = $(patsubst $(BUILD_DIR)/%.o,$(BUILD_DIR)/%.d,$(OBJECTS))
 
 MAIN_EXE = othello_bot_main
 TRAIN_EXE = othello_bot_train
@@ -32,7 +36,7 @@ $(EVALUATE_EXE): $(SHARED_OBJECTS) $(EVALUATE_OBJ)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(DEPFLAGS) -c $< -o $@
 
 clean:
 	rm -rf $(BUILD_DIR) $(MAIN_EXE) $(TRAIN_EXE) $(EVALUATE_EXE)
@@ -45,5 +49,8 @@ train: $(TRAIN_EXE)
 
 evaluate: $(EVALUATE_EXE)
 	./$(EVALUATE_EXE)
+
+# Include dependency files (ignore missing ones)
+-include $(DEPS)
 
 .PHONY: all clean run train evaluate
