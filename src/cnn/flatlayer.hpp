@@ -12,9 +12,7 @@ class FlatLayer : public Layer<X_in, Y_in, C_in, N_out, 1, 1> {
 private:
     // No weights or biases needed for flattening layer
 public:
-    FlatLayer() {
-        // Initialize any necessary parameters
-    }
+    FlatLayer() {}
 
     std::unique_ptr<TensorInterface> forward(const TensorInterface& input) override {
         // Reshape input tensor to output tensor

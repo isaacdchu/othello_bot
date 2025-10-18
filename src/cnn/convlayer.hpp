@@ -4,8 +4,11 @@
 #include "layer.hpp"
 #include "tensor3d.hpp"
 #include "activation.hpp"
+#include "convolution.hpp"
+
 #include <memory>
 #include <algorithm>
+#include <vector> 
 
 // X/Y are spatial dimensions of the board, C is the number of channels, K is kernel size, S is stride, P is padding
 template<size_t X_in, size_t Y_in, size_t C_in, size_t K, size_t S, size_t P, size_t C_out>
@@ -16,6 +19,12 @@ private:
     // Weights and biases for the convolutional layer
     Tensor3D<K, K, C_in * C_out> weights; // Convolutional filters
     Tensor3D<1, 1, C_out> biases; // Biases for each output channel
+
+    // Backpropagation storage
+    // input tensor from last forward pass
+    Tensor3D<X_in, Y_in, C_in> last_input;
+    // f'(z) for each output neuron
+    Tensor3D<X_out, Y_out, C_out> pre_activation_output;
 public:
     ConvLayer() {
         // Initialize weights and biases
@@ -27,43 +36,57 @@ public:
         : weights(other.weights), biases(other.biases) {}
 
     std::unique_ptr<TensorInterface> forward(const TensorInterface& input) override {
-        Tensor3D<X_out, Y_out, C_out> output;
-        for (size_t c_out = 0; c_out < C_out; c_out++) {
-            for (size_t y = 0; y < Y_out; y++) {
-                for (size_t x = 0; x < X_out; x++) {
-                    float conv_sum = 0.0f;
-                    for (size_t c_in = 0; c_in < C_in; c_in++) {
-                        for (size_t ky = 0; ky < K; ky++) {
-                            for (size_t kx = 0; kx < K; kx++) {
-                                int in_x = x * S + kx - P;
-                                int in_y = y * S + ky - P;
-                                if (in_x < 0 || in_y < 0) {
-                                    continue;
-                                }
-                                // "unsigned" cast since in_x and in_y are guarenteed non-negative from above if statement
-                                if ((unsigned)in_x >= X_in || (unsigned)in_y >= Y_in) {
-                                    continue;
-                                }
-                                conv_sum += input.at(in_x, in_y, c_in) * weights.at(kx, ky, c_in + c_out * C_in);
-                            }
-                        }
-                    }
-                    // Add bias
-                    output.at(x, y, c_out) = conv_sum + biases.at(0, 0, c_out);
-                }
-            }
-        }
-        // Activation (ReLU)
+        // cast to concrete tensor implementation (assumes caller passes Tensor3D)
+        const auto& in = static_cast<const Tensor3D<X_in, Y_in, C_in>&>(input);
+        last_input = in;
+        Tensor3D<X_out, Y_out, C_out> output = convolute<X_in, Y_in, C_in, K, S, P, C_out>(in, weights, biases);
+        pre_activation_output = output;
         relu(output);
-        // Return as unique_ptr<TensorInterface>
         return std::make_unique<Tensor3D<X_out, Y_out, C_out>>(output);
     }
 
     std::unique_ptr<TensorInterface> backward(const TensorInterface& grad_output) override {
-        (void)grad_output; // suppress unused-parameter warning until implemented
-        Tensor3D<X_in, Y_in, C_in> grad_input = Tensor3D<X_in, Y_in, C_in>(0.0f);
         // Calculate dL/dW, dL/db, and dL/dInput
-        return std::make_unique<Tensor3D<X_in, Y_in, C_in>>(grad_input);
+
+        // delta = dL/dz = dL/dOutput * f'(z)
+        Tensor3D<X_out, Y_out, C_out> delta;
+        for (size_t k = 0; k < C_out; k++) {
+            for (size_t j = 0; j < Y_out; j++) {
+                for (size_t i = 0; i < X_out; i++) {
+                    delta.at(i, j, k) = grad_output.at(i, j, k) * pre_activation_output.at(i, j, k);
+                }
+            }
+        }
+        // dL/dW = input conv delta
+        Tensor3D<K, K, C_in * C_out> dL_dW = convolute<X_in, Y_in, C_in, K, S, P, C_out>(last_input, delta);
+
+        // dL/dbk = sum(i j) delta(i j k)
+        Tensor3D<1, 1, C_out> dL_db;
+        for (size_t k = 0; k < C_out; k++) {
+            float sum = 0.0f;
+            for (size_t j = 0; j < Y_out; j++) {
+                for (size_t i = 0; i < X_out; i++) {
+                    sum += delta.at(i, j, k);
+                }
+            }
+            dL_db.at(0, 0, k) = sum;
+        }
+
+        // dL/dInput = delta conv W_flipped
+        Tensor3D<K, K, C_in * C_out> weights_flipped = Tensor3D<K, K, C_in * C_out>();
+        // Flip weights for convolution
+        for (size_t k = 0; k < C_out; k++) {
+            for (size_t c = 0; c < C_in; c++) {
+                for (size_t j = 0; j < K; j++) {
+                    for (size_t i = 0; i < K; i++) {
+                        weights_flipped.at(K - 1 - i, K - 1 - j, c + k * C_in) = weights.at(i, j, c + k * C_in);
+                    }
+                }
+            }
+        }
+        Tensor3D<X_in, Y_in, C_in> dL_dInput = convolute<X_out, Y_out, C_out, K, 1, K - 1 - P, C_in>(delta, weights_flipped);
+
+        return std::make_unique<Tensor3D<X_in, Y_in, C_in>>(dL_dInput);
     }
 
     std::string to_string(bool details = false) const override {

@@ -50,7 +50,6 @@ public:
     }
 
     std::unique_ptr<TensorInterface> backward(const TensorInterface& grad_output) override {
-        (void)grad_output; // suppress unused-parameter warning until implemented
         // Calculate dL/dW, dL/db, and dL/dInput
         // delta = grad_output * f'(z)
         Tensor3D<N_out, 1, 1> delta;
