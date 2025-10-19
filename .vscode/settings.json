@@ -50,6 +50,7 @@
         "random": "cpp",
         "iomanip": "cpp",
         "tuple": "cpp",
-        "valarray": "cpp"
+        "valarray": "cpp",
+        "fstream": "cpp"
     }
 }

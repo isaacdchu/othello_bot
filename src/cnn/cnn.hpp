@@ -5,6 +5,7 @@
 #include "convlayer.hpp"
 #include "flatlayer.hpp"
 #include "denselayer.hpp"
+#include "optimizer.hpp"
 #include "adam.hpp"
 
 #include <vector>
@@ -21,16 +22,15 @@ private:
     std::vector<std::unique_ptr<LayerInterface>> layers;
 
 public:
-    CNN() {
-        std::unique_ptr<ConvLayer<8, 8, 3, filter_size, stride, stride, num_filters>> conv_layer = std::make_unique<ConvLayer<8, 8, 3, filter_size, stride, stride, num_filters>>();
-        std::unique_ptr<FlatLayer<8, 8, num_filters, 8 * 8 * num_filters>> flat_layer = std::make_unique<FlatLayer<8, 8, num_filters, 8 * 8 * num_filters>>();
-        std::unique_ptr<DenseLayer<8 * 8 * num_filters, 512>> dense_layer_1 = std::make_unique<DenseLayer<8 * 8 * num_filters, 512>>();
-        std::unique_ptr<DenseLayer<512, 1>> dense_layer_2 = std::make_unique<DenseLayer<512, 1>>();
-
-        layers.push_back(std::move(conv_layer));
-        layers.push_back(std::move(flat_layer));
-        layers.push_back(std::move(dense_layer_1));
-        layers.push_back(std::move(dense_layer_2));
+    CNN(Optimizer& optimizer) {
+        std::unique_ptr<ConvLayer<8, 8, 3, filter_size, stride, stride, num_filters>> conv_layer = std::make_unique<ConvLayer<8, 8, 3, filter_size, stride, stride, num_filters>>(*optimizer.clone());
+        std::unique_ptr<FlatLayer<8, 8, num_filters, 8 * 8 * num_filters>> flat_layer = std::make_unique<FlatLayer<8, 8, num_filters, 8 * 8 * num_filters>>(*optimizer.clone());
+        std::unique_ptr<DenseLayer<8 * 8 * num_filters, 512>> dense_layer_1 = std::make_unique<DenseLayer<8 * 8 * num_filters, 512>>(*optimizer.clone());
+        std::unique_ptr<DenseLayer<512, 1>> dense_layer_2 = std::make_unique<DenseLayer<512, 1>>(*optimizer.clone());
+        layers.emplace_back(std::move(conv_layer));
+        layers.emplace_back(std::move(flat_layer));
+        layers.emplace_back(std::move(dense_layer_1));
+        layers.emplace_back(std::move(dense_layer_2));
     }
 
     // Accept concrete input tensor (simpler and safe)

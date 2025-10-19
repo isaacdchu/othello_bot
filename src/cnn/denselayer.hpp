@@ -21,15 +21,15 @@ private:
     // f'(z) for each output neuron
     Tensor3D<N_out, 1, 1> pre_activation_output;
 public:
-    DenseLayer() {
+    explicit DenseLayer(Optimizer& optimizer) : Layer<N_in, 1, 1, N_out, 1, 1>(optimizer) {
         // Initialize weights and biases
         weights = Tensor3D<N_in, N_out, 1>(0.01f); // Small random values
         biases = Tensor3D<N_out, 1, 1>(0.0f);
         pre_activation_output = Tensor3D<N_out, 1, 1>(0.0f);
     }
 
-    DenseLayer(const DenseLayer& other) 
-        : weights(other.weights), biases(other.biases), last_input(other.last_input), pre_activation_output(other.pre_activation_output) {}
+    explicit DenseLayer(const DenseLayer& other) 
+        : Layer<N_in, 1, 1, N_out, 1, 1>(other), weights(other.weights), biases(other.biases), last_input(other.last_input), pre_activation_output(other.pre_activation_output) {}
 
     std::unique_ptr<TensorInterface> forward(const TensorInterface& input) override {
         last_input = Tensor3D<N_in, 1, 1>(input);
@@ -79,6 +79,10 @@ public:
         }
 
         return std::make_unique<Tensor3D<N_in, 1, 1>>(dL_dInput);
+    }
+
+    void update(const Optimizer& optimizer) override {
+        (void)optimizer; // avoid unused-parameter warning until implementation
     }
 
     std::string to_string(bool details = false) const override {

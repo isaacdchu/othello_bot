@@ -1,5 +1,7 @@
 #include "cnn/cnn.hpp"
 #include "cnn/tensor3d.hpp"
+#include "cnn/optimizer.hpp"
+#include "cnn/adam.hpp"
 
 #include <iostream>
 #include <string>
@@ -20,7 +22,8 @@ float get_label(const std::string& line) {
 }
 
 int main() {
-    CNN<32> model = CNN<32>();
+    std::unique_ptr<Optimizer> optimizer = Adam::factory(0.001f, 0.9f, 0.999f);
+    CNN<32> model = CNN<32>(*optimizer);
     std::ifstream infile("data/00.txt");
     std::string line;
     if (!infile.is_open()) {
@@ -29,9 +32,12 @@ int main() {
     }
     if (std::getline(infile, line)) {
         Tensor3D<8, 8, 3> input = parse_line(line);
-        std::cout << "Parsed input tensor: " << input.to_string() << std::endl;
+        // std::cout << "Parsed input tensor: " << input.to_string() << std::endl;
         Tensor3D<1, 1, 1> output = model.forward(input);
-        std::cout << "Parsed input forward pass completed." << std::endl;
+        // std::cout << "Parsed input forward pass completed." << std::endl;
+        std::cout << "Parsed output tensor: " << output.to_string() << std::endl;
+        model.backward(Tensor3D<1, 1, 1>(8.0f));
+        output = model.forward(input);
         std::cout << "Parsed output tensor: " << output.to_string() << std::endl;
     }
     return 0;

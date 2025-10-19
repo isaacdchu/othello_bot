@@ -12,7 +12,8 @@ class FlatLayer : public Layer<X_in, Y_in, C_in, N_out, 1, 1> {
 private:
     // No weights or biases needed for flattening layer
 public:
-    FlatLayer() {}
+    explicit FlatLayer(Optimizer& optimizer) : Layer<X_in, Y_in, C_in, N_out, 1, 1>(optimizer) {}
+    explicit FlatLayer(const FlatLayer& other) : Layer<X_in, Y_in, C_in, N_out, 1, 1>(other) {}
 
     std::unique_ptr<TensorInterface> forward(const TensorInterface& input) override {
         // Reshape input tensor to output tensor
@@ -30,6 +31,11 @@ public:
             grad_input.at(i) = grad_output.at(i);
         }
         return std::make_unique<Tensor3D<X_in, Y_in, C_in>>(grad_input);
+    }
+
+    void update(const Optimizer& optimizer) override {
+        (void)optimizer; // avoid unused-parameter warning until implementation
+        // do nothing, no parameters to update
     }
 
     std::string to_string(bool details = false) const override {

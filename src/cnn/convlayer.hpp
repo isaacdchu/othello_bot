@@ -5,6 +5,7 @@
 #include "tensor3d.hpp"
 #include "activation.hpp"
 #include "convolution.hpp"
+#include "optimizer.hpp"
 
 #include <memory>
 #include <algorithm>
@@ -26,14 +27,14 @@ private:
     // f'(z) for each output neuron
     Tensor3D<X_out, Y_out, C_out> pre_activation_output;
 public:
-    ConvLayer() {
+    explicit ConvLayer(Optimizer& optimizer) : Layer<X_in, Y_in, C_in, X_out, Y_out, C_out>(optimizer) {
         // Initialize weights and biases
         weights = Tensor3D<K, K, C_in * C_out>(0.01f); // Small random values
         biases = Tensor3D<1, 1, C_out>(0.0f);
     }
 
-    ConvLayer(const ConvLayer& other)
-        : weights(other.weights), biases(other.biases) {}
+    explicit ConvLayer(const ConvLayer& other)
+        : Layer<X_in, Y_in, C_in, X_out, Y_out, C_out>(other), weights(other.weights), biases(other.biases) {}
 
     std::unique_ptr<TensorInterface> forward(const TensorInterface& input) override {
         // cast to concrete tensor implementation (assumes caller passes Tensor3D)
@@ -87,6 +88,10 @@ public:
         Tensor3D<X_in, Y_in, C_in> dL_dInput = convolute<X_out, Y_out, C_out, K, 1, K - 1 - P, C_in>(delta, weights_flipped);
 
         return std::make_unique<Tensor3D<X_in, Y_in, C_in>>(dL_dInput);
+    }
+
+    void update(const Optimizer& optimizer) {
+        (void)optimizer; // avoid unused-parameter warning until implementation
     }
 
     std::string to_string(bool details = false) const override {
