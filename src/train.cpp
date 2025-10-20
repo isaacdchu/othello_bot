@@ -22,23 +22,30 @@ float get_label(const std::string& line) {
 }
 
 int main() {
-    std::unique_ptr<Optimizer> optimizer = Adam::factory(0.001f, 0.9f, 0.999f);
-    CNN<32> model = CNN<32>(*optimizer);
+    CNN<32, Adam, float, float, float> model(0.001f, 0.9f, 0.999f);
     std::ifstream infile("data/00.txt");
     std::string line;
     if (!infile.is_open()) {
         std::cerr << "Failed to open data/00.txt" << std::endl;
         return 1;
     }
+    std::string first_line;
     if (std::getline(infile, line)) {
-        Tensor3D<8, 8, 3> input = parse_line(line);
-        // std::cout << "Parsed input tensor: " << input.to_string() << std::endl;
-        Tensor3D<1, 1, 1> output = model.forward(input);
-        // std::cout << "Parsed input forward pass completed." << std::endl;
-        std::cout << "Parsed output tensor: " << output.to_string() << std::endl;
-        model.backward(Tensor3D<1, 1, 1>(8.0f));
-        output = model.forward(input);
-        std::cout << "Parsed output tensor: " << output.to_string() << std::endl;
+        first_line = line;
     }
+    const int MAX_LINES = 1000;
+    int line_count = 0;
+    while (std::getline(infile, line) && line_count < MAX_LINES) {
+        Tensor3D<8, 8, 3> input = parse_line(line);
+        float label = get_label(line);
+        Tensor3D<1, 1, 1> output = model.forward(input);
+        model.backward(output - Tensor3D<1, 1, 1>(label));
+        model.update();
+        line_count++;
+    }
+    Tensor3D<8, 8, 3> input = parse_line(first_line);
+    float label = get_label(first_line);
+    Tensor3D<1, 1, 1> output = model.forward(input);
+    std::cout << "Predicted: " << output.at(0, 0, 0) << ", Actual: " << label << std::endl;
     return 0;
 }

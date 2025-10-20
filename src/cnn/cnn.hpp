@@ -13,20 +13,20 @@
 #include <memory>
 #include <stdexcept>
 
-template<size_t num_filters>
+template<size_t num_filters, template<auto> class Opt, typename... Args>
 class CNN {
 private:
     static constexpr size_t filter_size = 3;
     static constexpr size_t stride = 1;
     static constexpr size_t padding = 1;
-    std::vector<std::unique_ptr<LayerInterface>> layers;
+    std::vector<std::unique_ptr<LayerInterface<Opt, Args...>>> layers;
 
 public:
-    CNN(Optimizer& optimizer) {
-        std::unique_ptr<ConvLayer<8, 8, 3, filter_size, stride, stride, num_filters>> conv_layer = std::make_unique<ConvLayer<8, 8, 3, filter_size, stride, stride, num_filters>>(*optimizer.clone());
-        std::unique_ptr<FlatLayer<8, 8, num_filters, 8 * 8 * num_filters>> flat_layer = std::make_unique<FlatLayer<8, 8, num_filters, 8 * 8 * num_filters>>(*optimizer.clone());
-        std::unique_ptr<DenseLayer<8 * 8 * num_filters, 512>> dense_layer_1 = std::make_unique<DenseLayer<8 * 8 * num_filters, 512>>(*optimizer.clone());
-        std::unique_ptr<DenseLayer<512, 1>> dense_layer_2 = std::make_unique<DenseLayer<512, 1>>(*optimizer.clone());
+    CNN(Args... args) {
+        auto conv_layer = std::make_unique<ConvLayer<8, 8, 3, filter_size, stride, stride, num_filters, Opt, Args...>>(args...);
+        auto flat_layer = std::make_unique<FlatLayer<8, 8, num_filters, 8 * 8 * num_filters, Opt, Args...>>(args...);
+        auto dense_layer_1 = std::make_unique<DenseLayer<8 * 8 * num_filters, 512, Opt, Args...>>(args...);
+        auto dense_layer_2 = std::make_unique<DenseLayer<512, 1, Opt, Args...>>(args...);
         layers.emplace_back(std::move(conv_layer));
         layers.emplace_back(std::move(flat_layer));
         layers.emplace_back(std::move(dense_layer_1));
@@ -55,10 +55,16 @@ public:
         return *concrete;
     }
 
-    std::vector<std::unique_ptr<LayerInterface>> get_layers() const {
-        std::vector<std::unique_ptr<LayerInterface>> layer_refs;
+    void update() {
         for (const auto& layer : layers) {
-            layer_refs.push_back(std::unique_ptr<LayerInterface>(layer->clone()));
+            layer->update();
+        }
+    }
+
+    std::vector<std::unique_ptr<LayerInterface<Opt, Args...>>> get_layers() const {
+        std::vector<std::unique_ptr<LayerInterface<Opt, Args...>>> layer_refs;
+        for (const auto& layer : layers) {
+            layer_refs.push_back(std::unique_ptr<LayerInterface<Opt, Args...>>(layer->clone()));
         }
         return layer_refs;
     }
