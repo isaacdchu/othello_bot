@@ -6,6 +6,7 @@
 
 #include <memory>
 
+template<typename... Args>
 class Optimizer {
 public:
     ~Optimizer() = default;

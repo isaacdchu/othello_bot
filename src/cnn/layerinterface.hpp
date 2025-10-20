@@ -5,17 +5,15 @@
 #include "optimizer.hpp"
 #include <memory>
 
+template<template<auto> class Opt, typename... Args>
 class LayerInterface {
-protected:
-    Optimizer& optimizer;
 public:
-    explicit LayerInterface(Optimizer& optimizer) : optimizer(optimizer) {}
     virtual ~LayerInterface() = default;
     virtual std::unique_ptr<TensorInterface> forward(const TensorInterface& input) = 0;
     virtual std::unique_ptr<TensorInterface> backward(const TensorInterface& grad_output) = 0;
-    virtual void update(const Optimizer& optimizer) = 0;
+    virtual void update() = 0;
     virtual std::string to_string(bool details = false) const = 0;
-    virtual LayerInterface* clone() const = 0;
+    virtual LayerInterface<Opt, Args...>* clone() const = 0;
 };
 
 #endif // LAYER_INTERFACE_HPP
