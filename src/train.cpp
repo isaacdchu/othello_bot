@@ -17,8 +17,7 @@ Tensor3D<8, 8, 3> parse_line(const std::string& line) {
 }
 
 float get_label(const std::string& line) {
-    const char c = line.back();
-    return static_cast<float>(c - '0');
+    return static_cast<float>(line.back() - '0');
 }
 
 int main() {
@@ -49,3 +48,11 @@ int main() {
     std::cout << "Predicted: " << output.at(0, 0, 0) << ", Actual: " << label << std::endl;
     return 0;
 }
+
+// TODO
+// training loop, epochs/batches
+// evaluation metrics
+// save/load model parameters
+// integrate with MCTS and bot
+// optimize performance (SIMD, CUDA)
+// compare with PyTorch implementation

@@ -1,6 +1,7 @@
 #ifndef CNN_HPP
 #define CNN_HPP
 
+#include "model.hpp"
 #include "layer.hpp"
 #include "convlayer.hpp"
 #include "flatlayer.hpp"
@@ -14,7 +15,7 @@
 #include <stdexcept>
 
 template<size_t num_filters, template<auto> class Opt, typename... Args>
-class CNN {
+class CNN : public Model {
 private:
     static constexpr size_t filter_size = 3;
     static constexpr size_t stride = 1;
