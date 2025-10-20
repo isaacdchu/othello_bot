@@ -60,14 +60,14 @@ public:
         return *this;
     }
 
-    Tensor3D operator-(const Tensor3D& other) const {
+    Tensor3D operator-(const Tensor3D& other) {
         for (size_t i = 0; i < X * Y * Z; i++) {
             result_data[i] = data[i] - other.at(i);
         }
         return Tensor3D(result_data);
     }
 
-    Tensor3D operator-(const float scalar) const {
+    Tensor3D operator-(const float scalar) {
         for (size_t i = 0; i < X * Y * Z; i++) {
             result_data[i] = data[i] - scalar;
         }
@@ -104,6 +104,10 @@ public:
         return data[i];
     }
 
+    void fill(float value) {
+        data.fill(value);
+    }
+
     std::string to_string() const {
         std::string result = "Tensor3D(";
         for (size_t k = 0; k < Z; k++) {
@@ -126,6 +130,10 @@ public:
 
     constexpr size_t size() const {
         return X * Y * Z;
+    }
+
+    static constexpr std::array<size_t, 3> shape() {
+        return {X, Y, Z};
     }
 };
 
