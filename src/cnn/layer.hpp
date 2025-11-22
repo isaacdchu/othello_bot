@@ -15,6 +15,7 @@ public:
     virtual void update() = 0;
     virtual std::string to_string(bool details = false) const = 0;
     virtual LayerInterface<Opt, Args...>* clone() const = 0;
+    virtual std::string serialize() const = 0;
 };
 
 #endif // LAYER_HPP

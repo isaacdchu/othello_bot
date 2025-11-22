@@ -49,6 +49,10 @@ public:
     LayerInterface<Opt, Args...>* clone() const override {
         return new FlatLayer<X_in, Y_in, C_in, N_out, Opt, Args...>(*this);
     }
+
+    std::string serialize() const override {
+        return "";
+    }
 };
 
 #endif // FLATLAYER_HPP

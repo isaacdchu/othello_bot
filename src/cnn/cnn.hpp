@@ -35,7 +35,7 @@ public:
     }
 
     // Accept concrete input tensor (simpler and safe)
-    Tensor3D<1, 1, 1> forward(const Tensor3D<8, 8, 3>& input) {
+    Tensor3D<1, 1, 1> forward(const Tensor3D<8, 8, 3>& input) override {
         std::unique_ptr<TensorInterface> current_input = std::make_unique<Tensor3D<8, 8, 3>>(input);
         for (const auto& layer : layers) {
             current_input = layer->forward(*current_input);
@@ -46,7 +46,7 @@ public:
     }
     
     // Backward: accept concrete gradient for output and propagate backwards, return gradient w.r.t. input
-    Tensor3D<8, 8, 3> backward(const Tensor3D<1, 1, 1>& grad_output) {
+    Tensor3D<8, 8, 3> backward(const Tensor3D<1, 1, 1>& grad_output) override {
         std::unique_ptr<TensorInterface> current_grad = std::make_unique<Tensor3D<1, 1, 1>>(grad_output);
         for (auto it = layers.rbegin(); it != layers.rend(); ++it) {
             current_grad = (*it)->backward(*current_grad);
@@ -56,7 +56,7 @@ public:
         return *concrete;
     }
 
-    void update() {
+    void update() override {
         for (const auto& layer : layers) {
             layer->update();
         }
@@ -69,6 +69,21 @@ public:
         }
         return layer_refs;
     }
+
+    void save(const std::string& file_path) const override {
+        // Implementation for saving the model to a file
+        /*
+        for (const auto& layer : layers) {
+            file_path << layer->serialize();
+        }
+        */
+    }
+    
+    /*
+    static CNN<num_filters, Opt, Args...> load(const std::string& file_path) override {
+        // Implementation for loading the model from a file
+    }
+    */
 };
 
 #endif // CNN_HPP

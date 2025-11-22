@@ -109,6 +109,10 @@ public:
     LayerInterface<Opt, Args...>* clone() const override {
         return new DenseLayer<N_in, N_out, Opt, Args...>(*this);
     }
+
+    std::string serialize() const override {
+        return "";
+    }
 };
 
 #endif // DENSE_LAYER_HPP

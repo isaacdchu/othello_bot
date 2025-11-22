@@ -120,6 +120,10 @@ public:
     LayerInterface<Opt, Args...>* clone() const override {
         return new ConvLayer<X_in, Y_in, C_in, K, S, P, C_out, Opt, Args...>(*this);
     }
+
+    std::string serialize() const override {
+        return "";
+    }
 };
 
 #endif // CONV_LAYER_HPP
