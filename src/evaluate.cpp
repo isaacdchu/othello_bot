@@ -23,7 +23,7 @@ float get_label(const std::string& line) {
 }
 
 int main() {
-    CNN<32, Adam, float, float, float> model("model/cnn.model");
+    CNN<32, Adam, float, float, float> model("models/cnn.model");
     std::ifstream infile("data/01.txt");
     std::string line;
     if (!infile.is_open()) {

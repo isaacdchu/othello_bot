@@ -101,3 +101,36 @@ convolute(
 
     return output;
 }
+template <size_t X_in, size_t Y_in, size_t C_in, size_t K, size_t S, size_t P, size_t C_out>
+Tensor3D<K, K, C_in * C_out>
+grad_convolute(
+    const Tensor3D<X_in, Y_in, C_in>& input,
+    const Tensor3D<(X_in - K + 2 * P) / S + 1, (Y_in - K + 2 * P) / S + 1, C_out>& delta) {
+    Tensor3D<K, K, C_in * C_out> dL_dW;
+    dL_dW.fill(0.0f);
+    constexpr size_t X_out = (X_in - K + 2 * P) / S + 1;
+    constexpr size_t Y_out = (Y_in - K + 2 * P) / S + 1;
+    for (size_t c_out = 0; c_out < C_out; ++c_out) {
+        for (size_t c_in = 0; c_in < C_in; ++c_in) {
+            for (size_t ky = 0; ky < K; ++ky) {
+                for (size_t kx = 0; kx < K; ++kx) {
+                    float sum = 0.0f;
+                    for (size_t y = 0; y < Y_out; ++y) {
+                        for (size_t x = 0; x < X_out; ++x) {
+                            int in_x = int(x) * int(S) + int(kx) - int(P);
+                            int in_y = int(y) * int(S) + int(ky) - int(P);
+                            float input_val = 0.0f;
+                            if (in_x >= 0 && in_y >= 0 &&
+                                (unsigned)in_x < X_in && (unsigned)in_y < Y_in) {
+                                input_val = input.at((size_t)in_x, (size_t)in_y, c_in);
+                            }
+                            sum += input_val * delta.at(x, y, c_out);
+                        }
+                    }
+                    dL_dW.at(kx, ky, c_in + c_out * C_in) = sum;
+                }
+            }
+        }
+    }
+    return dL_dW;
+}

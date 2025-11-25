@@ -90,7 +90,7 @@ public:
             }
         }
         // dL/dW = input conv delta
-        dL_dW += convolute<X_in, Y_in, C_in, K, S, P, C_out>(last_input, delta);
+        dL_dW += grad_convolute<X_in, Y_in, C_in, K, S, P, C_out>(last_input, delta);
 
         // dL/dbk = sum(i j) delta(i j k)
         for (size_t k = 0; k < C_out; k++) {
