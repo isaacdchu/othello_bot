@@ -4,3 +4,5 @@
 build/
 # Data directory
 data/
+# Model directory
+models/
