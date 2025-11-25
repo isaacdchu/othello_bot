@@ -5,6 +5,7 @@
 
 #include <array>
 #include <string>
+#include <sstream>
 
 template<size_t X, size_t Y, size_t Z>
 class Tensor3D : public TensorInterface {
@@ -29,6 +30,20 @@ public:
         // Initialize from another TensorInterface
         for (size_t i = 0; i < X * Y * Z; i++) {
             data[i] = other.at(i);
+        }
+    }
+
+    Tensor3D(const std::string& serialized_data) {
+        // Deserialize from string
+        size_t pos = 0;
+        size_t idx = 0;
+        size_t next_pos;
+        while ((next_pos = serialized_data.find(',', pos)) != std::string::npos && idx < X * Y * Z) {
+            data[idx++] = std::stof(serialized_data.substr(pos, next_pos - pos));
+            pos = next_pos + 1;
+        }
+        if (idx < X * Y * Z) {
+            data[idx++] = std::stof(serialized_data.substr(pos));
         }
     }
 
@@ -126,6 +141,20 @@ public:
         }
         result += ")";
         return result;
+    }
+
+    std::string serialize() const {
+        std::ostringstream data_stream;
+        data_stream.precision(10); // Set precision to 10 digits
+        data_stream << std::fixed; // Use fixed-point notation
+
+        for (size_t i = 0; i < X * Y * Z; i++) {
+            data_stream << data[i];
+            if (i < X * Y * Z - 1) {
+                data_stream << ",";
+            }
+        }
+        return data_stream.str();
     }
 
     constexpr size_t size() const {

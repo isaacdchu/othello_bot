@@ -11,19 +11,37 @@
 
 #include <vector>
 #include <array>
+#include <tuple>
+#include <string>
+#include <fstream>
+#include <sstream>
 #include <memory>
 #include <stdexcept>
 
-template<size_t num_filters, template<auto> class Opt, typename... Args>
+template <typename... Args>
+std::tuple<Args...> parse_layer_args(const std::string& line) {
+    std::istringstream ss(line);
+    std::tuple<Args...> args;
+
+    auto parse = [&ss](auto&... elements) {
+        ((ss >> elements), ...);
+    };
+
+    std::apply(parse, args);
+    return args;
+}
+
+template <size_t num_filters, template <auto> class Opt, typename... Args>
 class CNN : public Model {
 private:
     static constexpr size_t filter_size = 3;
     static constexpr size_t stride = 1;
     static constexpr size_t padding = 1;
     std::vector<std::unique_ptr<LayerInterface<Opt, Args...>>> layers;
+    std::tuple<Args...> layer_args;
 
 public:
-    CNN(Args... args) {
+    CNN(Args... args) : layer_args(args...) {
         auto conv_layer = std::make_unique<ConvLayer<8, 8, 3, filter_size, stride, stride, num_filters, Opt, Args...>>(args...);
         auto flat_layer = std::make_unique<FlatLayer<8, 8, num_filters, 8 * 8 * num_filters, Opt, Args...>>(args...);
         auto dense_layer_1 = std::make_unique<DenseLayer<8 * 8 * num_filters, 512, Opt, Args...>>(args...);
@@ -32,6 +50,48 @@ public:
         layers.emplace_back(std::move(flat_layer));
         layers.emplace_back(std::move(dense_layer_1));
         layers.emplace_back(std::move(dense_layer_2));
+    }
+
+    CNN(const std::string& file_path) {
+        std::ifstream file(file_path);
+        if (!file.is_open()) {
+            throw std::runtime_error("Could not open file for loading CNN model: " + file_path);
+        }
+        std::string line;
+        // Read layer args from first line
+        if (std::getline(file, line)) {
+            layer_args = parse_layer_args<Args...>(line);
+        } else {
+            throw std::runtime_error("Failed to read layer args from CNN model file: " + file_path);
+        }
+        // Read layers in order that they appear
+        while (std::getline(file, line)) {
+            if (line.find("ConvLayer") != std::string::npos) {
+                std::string layer_data = "";
+                while (std::getline(file, line) && !line.empty()) {
+                    layer_data += line + "\n";
+                }
+                auto layer = std::make_unique<ConvLayer<8, 8, 3, filter_size, stride, stride, num_filters, Opt, Args...>>(layer_data);
+                layers.emplace_back(std::move(layer));
+            } else if (line.find("FlatLayer") != std::string::npos) {
+                auto layer = std::make_unique<FlatLayer<8, 8, num_filters, 8 * 8 * num_filters, Opt, Args...>>(line);
+                layers.emplace_back(std::move(layer));
+            } else if (line.find("DenseLayer") != std::string::npos) {
+                std::string layer_data = "";
+                while (std::getline(file, line) && !line.empty()) {
+                    layer_data += line + "\n";
+                }
+                if (layers.size() == 2) {
+                    auto layer = std::make_unique<DenseLayer<8 * 8 * num_filters, 512, Opt, Args...>>(layer_data);
+                    layers.emplace_back(std::move(layer));
+                } else if (layers.size() == 3) {
+                    auto layer = std::make_unique<DenseLayer<512, 1, Opt, Args...>>(layer_data);
+                    layers.emplace_back(std::move(layer));
+                } else {
+                    throw std::runtime_error("Unexpected DenseLayer position in CNN model file: " + line);
+                }
+            }
+        }
     }
 
     // Accept concrete input tensor (simpler and safe)
@@ -71,19 +131,18 @@ public:
     }
 
     void save(const std::string& file_path) const override {
-        // Implementation for saving the model to a file
-        /*
-        for (const auto& layer : layers) {
-            file_path << layer->serialize();
+        std::ofstream file(file_path);
+        if (!file.is_open()) {
+            throw std::runtime_error("Could not open file for saving CNN model: " + file_path);
         }
-        */
+        std::apply([&file](const auto&... args) {
+            ((file << args << " "), ...);
+            file << std::endl;
+        }, layer_args);
+        for (const auto& layer : layers) {
+            file << layer->serialize() << std::endl;
+        }
     }
-    
-    /*
-    static CNN<num_filters, Opt, Args...> load(const std::string& file_path) override {
-        // Implementation for loading the model from a file
-    }
-    */
 };
 
 #endif // CNN_HPP

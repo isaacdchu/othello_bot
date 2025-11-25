@@ -44,6 +44,19 @@ public:
     explicit DenseLayer(const DenseLayer& other) 
         : Layer<N_in, 1, 1, N_out, 1, 1, Opt, Args...>(other), weights(other.weights), biases(other.biases), last_input(other.last_input), pre_activation_output(other.pre_activation_output) {}
 
+    DenseLayer(const std::string& serialized_data) 
+        : weights_optimizer(Opt<decltype(weights)::shape()>()),
+          biases_optimizer(Opt<decltype(biases)::shape()>()) {
+        // Deserialize weights and biases from string
+        size_t weights_pos = serialized_data.find("Weights:") + 8;
+        size_t biases_pos = serialized_data.find("Biases:") + 7;
+        size_t weights_end = serialized_data.find("\n", weights_pos);
+        std::string weights_str = serialized_data.substr(weights_pos, weights_end - weights_pos);
+        std::string biases_str = serialized_data.substr(biases_pos);
+        weights = Tensor3D<N_in, N_out, 1>(weights_str);
+        biases = Tensor3D<N_out, 1, 1>(biases_str);
+    }
+
     std::unique_ptr<TensorInterface> forward(const TensorInterface& input) override {
         last_input = Tensor3D<N_in, 1, 1>(input);
         Tensor3D<N_out, 1, 1> output;
@@ -114,7 +127,10 @@ public:
     }
 
     std::string serialize() const override {
-        return "";
+        std::string data = "DenseLayer\n";
+        data += "Weights:" + weights.serialize() + "\n";
+        data += "Biases:" + biases.serialize() + "\n";
+        return data;
     }
 };
 

@@ -13,6 +13,7 @@ public:
     virtual float& at(size_t i) = 0;
     virtual void fill(float value) = 0;
     virtual std::string to_string() const = 0;
+    virtual std::string serialize() const = 0;
     virtual constexpr size_t size() const = 0;
     static constexpr std::array<size_t, 3> shape();
 };

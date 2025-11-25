@@ -21,7 +21,8 @@ float get_label(const std::string& line) {
 }
 
 int main() {
-    CNN<32, Adam, float, float, float> model(0.001f, 0.9f, 0.999f);
+    // CNN<32, Adam, float, float, float> model(0.001f, 0.9f, 0.999f);
+    CNN<32, Adam, float, float, float> model("cnn_model.txt");
     std::ifstream infile("data/00.txt");
     std::string line;
     if (!infile.is_open()) {
@@ -34,18 +35,33 @@ int main() {
     }
     const int MAX_LINES = 1000;
     int line_count = 0;
+    const int EPOCHS = 10;
+    const int BATCH_SIZE = 10;
+    std::vector<std::string> lines;
+
+    // Read all lines into memory
     while (std::getline(infile, line) && line_count < MAX_LINES) {
-        Tensor3D<8, 8, 3> input = parse_line(line);
-        float label = get_label(line);
-        Tensor3D<1, 1, 1> output = model.forward(input);
-        model.backward(output - Tensor3D<1, 1, 1>(label));
-        model.update();
+        lines.push_back(line);
         line_count++;
+    }
+
+    for (int epoch = 0; epoch < EPOCHS; ++epoch) {
+        std::cout << "Epoch " << (epoch + 1) << "/" << EPOCHS << std::endl;
+        for (size_t i = 0; i < lines.size(); i += BATCH_SIZE) {
+            for (size_t j = i; j < i + BATCH_SIZE && j < lines.size(); ++j) {
+                Tensor3D<8, 8, 3> input = parse_line(lines[j]);
+                float label = get_label(lines[j]);
+                Tensor3D<1, 1, 1> output = model.forward(input);
+                model.backward(output - Tensor3D<1, 1, 1>(label));
+            }
+            model.update();
+        }
     }
     Tensor3D<8, 8, 3> input = parse_line(first_line);
     float label = get_label(first_line);
     Tensor3D<1, 1, 1> output = model.forward(input);
     std::cout << "Predicted: " << output.at(0, 0, 0) << ", Actual: " << label << std::endl;
+    model.save("cnn_model.txt");
     return 0;
 }
 

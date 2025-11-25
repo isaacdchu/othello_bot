@@ -47,6 +47,22 @@ public:
 
     explicit ConvLayer(const ConvLayer& other)
         : Layer<X_in, Y_in, C_in, X_out, Y_out, C_out, Opt, Args...>(other), weights(other.weights), biases(other.biases) {}
+
+    explicit ConvLayer(const std::string& serialized_data) 
+        : weights_optimizer(Opt<decltype(dL_dW)::shape()>()),
+          biases_optimizer(Opt<decltype(dL_db)::shape()>()) {
+        // Deserialize weights and biases from string
+        size_t weights_pos = serialized_data.find("Weights:") + 8;
+        size_t biases_pos = serialized_data.find("Biases:") + 7;
+        size_t weights_end = serialized_data.find("\n", weights_pos);
+        std::string weights_str = serialized_data.substr(weights_pos, weights_end - weights_pos);
+        std::string biases_str = serialized_data.substr(biases_pos);
+        weights = Tensor3D<K, K, C_in * C_out>(weights_str);
+        biases = Tensor3D<1, 1, C_out>(biases_str);
+        dL_dW = Tensor3D<K, K, C_in * C_out>(0.0f);
+        dL_db = Tensor3D<1, 1, C_out>(0.0f);
+    }
+    
     std::unique_ptr<TensorInterface> forward(const TensorInterface& input) override {
         // cast to concrete tensor implementation (assumes caller passes Tensor3D)
         const auto& in = static_cast<const Tensor3D<X_in, Y_in, C_in>&>(input);
@@ -125,7 +141,10 @@ public:
     }
 
     std::string serialize() const override {
-        return "";
+        std::string data = "ConvLayer\n";
+        data += "Weights:" + weights.serialize() + "\n";
+        data += "Biases:" + biases.serialize() + "\n";
+        return data;
     }
 };
 

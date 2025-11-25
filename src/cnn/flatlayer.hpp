@@ -15,7 +15,13 @@ public:
     explicit FlatLayer(Args...) {
         // no parameters to initialize
     }
+    
     explicit FlatLayer(const FlatLayer& other) : Layer<X_in, Y_in, C_in, N_out, 1, 1, Opt, Args...>(other) {}
+
+    FlatLayer(const std::string& serialized_data) {
+        // no parameters to deserialize
+        (void)serialized_data; // suppress unused-parameter warning
+    }
 
     std::unique_ptr<TensorInterface> forward(const TensorInterface& input) override {
         // Reshape input tensor to output tensor
@@ -51,7 +57,7 @@ public:
     }
 
     std::string serialize() const override {
-        return "";
+        return "FlatLayer\n"; // No parameters to serialize
     }
 };
 
