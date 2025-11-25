@@ -30,13 +30,16 @@ public:
         vt = std::make_unique<Tensor3D<init_shape[0], init_shape[1], init_shape[2]>>(zero_tensor);
     }
 
+    void step() override {
+        t++;
+    }
+
     // mt = beta1 * mt-1 + (1 - beta1) * dL/dwt
     // vt = beta2 * vt-1 + (1 - beta2) * (dL/dwt)^2
     // mht = mt / (1 - beta1^t)
     // vht = vt / (1 - beta2^t)
     // wt+1 = wt - learning_rate * mht / (sqrt(vht) + epsilon)
     void update(TensorInterface& param, const TensorInterface& gradients) override {
-        t++;
         const float mhat_scale = (1.0f - std::pow(beta1, t));
         const float vhat_scale = (1.0f - std::pow(beta2, t));
         for (size_t i = 0; i < param.size(); i++) {

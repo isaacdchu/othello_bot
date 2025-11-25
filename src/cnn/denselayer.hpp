@@ -62,6 +62,9 @@ public:
     }
 
     std::unique_ptr<TensorInterface> backward(const TensorInterface& grad_output) override {
+        weights_optimizer.step();
+        biases_optimizer.step();
+        
         // Calculate dL/dW, dL/db, and dL/dInput
         // delta = grad_output * f'(z)
         Tensor3D<N_out, 1, 1> delta;
