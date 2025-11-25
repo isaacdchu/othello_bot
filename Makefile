@@ -8,8 +8,8 @@ MAIN_SRC = $(SRC_DIR)/main.cpp
 TRAIN_SRC = $(SRC_DIR)/train.cpp
 EVALUATE_SRC = $(SRC_DIR)/evaluate.cpp
 
-# All .cpp files except main.cpp and train.cpp
-SHARED_SOURCES = $(filter-out $(MAIN_SRC) $(TRAIN_SRC), $(shell find $(SRC_DIR) -name '*.cpp'))
+# All .cpp files except main.cpp, train.cpp, and evaluate.cpp
+SHARED_SOURCES = $(filter-out $(MAIN_SRC) $(TRAIN_SRC) $(EVALUATE_SRC), $(shell find $(SRC_DIR) -name '*.cpp'))
 SHARED_OBJECTS = $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SHARED_SOURCES))
 
 MAIN_OBJ = $(BUILD_DIR)/main.o
