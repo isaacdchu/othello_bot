@@ -6,3 +6,5 @@ build/
 data/
 # Model directory
 models/
+# Compiled binaries
+othello_bot_*

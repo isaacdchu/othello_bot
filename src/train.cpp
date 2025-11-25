@@ -21,8 +21,7 @@ float get_label(const std::string& line) {
 }
 
 int main() {
-    // CNN<32, Adam, float, float, float> model(0.001f, 0.9f, 0.999f);
-    CNN<32, Adam, float, float, float> model("cnn_model.txt");
+    CNN<32, Adam, float, float, float> model(0.001f, 0.9f, 0.999f);
     std::ifstream infile("data/00.txt");
     std::string line;
     if (!infile.is_open()) {
@@ -61,14 +60,12 @@ int main() {
     float label = get_label(first_line);
     Tensor3D<1, 1, 1> output = model.forward(input);
     std::cout << "Predicted: " << output.at(0, 0, 0) << ", Actual: " << label << std::endl;
-    model.save("cnn_model.txt");
+    model.save("models/cnn.model");
     return 0;
 }
 
 // TODO
-// training loop, epochs/batches
 // evaluation metrics
-// save/load model parameters
 // integrate with MCTS and bot
 // optimize performance (SIMD, CUDA)
 // compare with PyTorch implementation
