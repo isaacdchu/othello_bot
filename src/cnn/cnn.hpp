@@ -1,10 +1,12 @@
 #ifndef CNN_HPP
 #define CNN_HPP
 
-class CNN {
+#include "model.hpp"
+
+class CNN : public Model {
 public:
     CNN() {
-
+        
     }
 };
 
