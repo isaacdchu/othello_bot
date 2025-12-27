@@ -6,8 +6,14 @@
 
 class MSELoss : public Loss {
 public:
-    double forward(const Tensor& prediction, const Tensor& target) override {
-        // Implement the forward pass for MSE loss
+    Tensor forward(const Tensor& prediction, const Tensor& target) override {
+        float res = 0.0f;
+        for (std::size_t i = 0; i < prediction.size(); i++) {
+            const float diff = prediction.at(i) - target.at(i);
+            res += diff * diff;
+        }
+        res /= static_cast<float>(prediction.size());
+        return Tensor({}, {res});
     }
 
     Tensor backward() override {

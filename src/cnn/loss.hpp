@@ -5,7 +5,7 @@
 
 class Loss {
 public:
-    virtual double forward(const Tensor& prediction, const Tensor& target) = 0;
+    virtual Tensor forward(const Tensor& prediction, const Tensor& target) = 0;
     virtual Tensor backward() = 0;
 };
 

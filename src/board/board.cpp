@@ -163,7 +163,7 @@ Tensor Board::get_state_tensor() const {
         }
         combined_data[i + 128] = legal_moves_array[i];
     }
-    return Tensor(combined_data);
+    return Tensor({3, 8, 8}, std::vector<float>(combined_data.begin(), combined_data.end()));
 }
 
 void Board::update_legal_moves() {

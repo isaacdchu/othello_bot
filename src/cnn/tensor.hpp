@@ -15,8 +15,7 @@ private:
     std::vector<float> data_;
 public:
     Tensor(const std::vector<std::size_t>& shape)
-        : shape_(shape) {
-        size_ = 1;
+        : shape_(shape), strides_(), size_(1), data_() {
         for (std::size_t dim : shape) {
             size_ *= dim;
         }
@@ -30,8 +29,7 @@ public:
     }
 
     Tensor(const std::vector<std::size_t>& shape, const std::vector<float>& data)
-        : shape_(shape), data_(data) {
-        size_ = 1;
+        : shape_(shape), strides_(), size_(1), data_(data) {
         for (std::size_t dim : shape) {
             size_ *= dim;
         }
@@ -45,9 +43,10 @@ public:
             stride *= shape[i];
         }
     }
-    
-    Tensor(const Tensor& other)
-        : shape_(other.shape_), size_(other.size_), data_(other.data_), strides_(other.strides_) {
+
+    Tensor(const Tensor &other)
+        : shape_(other.shape_), strides_(other.strides_), size_(other.size_), data_(other.data_)
+    {
     }
 
     Tensor operator+(const Tensor& other) const {
@@ -185,6 +184,14 @@ public:
         data_stream << "\n";
         std::string serialized_data = data_stream.str();
         return serialized_data;
+    }
+
+    const float& at(std::size_t index) const {
+        return data_[index];
+    }
+
+    float& at(std::size_t index) {
+        return data_[index];
     }
 
     const float& at(const std::vector<size_t>& indices) const {
