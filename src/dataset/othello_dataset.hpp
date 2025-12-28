@@ -25,7 +25,6 @@ private:
         return {input_tensor, target_tensor};
     }
 public:
-    OthelloDataset(const std::vector<std::pair<Tensor, Tensor>>& data) : data_(data) {}
     OthelloDataset(const std::string& file_path, std::size_t max_samples = 0) {
         std::ifstream data_file(file_path); 
         if (!data_file.is_open()) {
