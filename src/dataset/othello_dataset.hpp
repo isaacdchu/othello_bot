@@ -21,7 +21,7 @@ private:
         target_data.reserve(1);
         target_data.push_back(line.back() - '0');
         Tensor input_tensor({3, 8, 8}, input_data);
-        Tensor target_tensor({}, target_data);
+        Tensor target_tensor({1}, target_data);
         return {input_tensor, target_tensor};
     }
 public:

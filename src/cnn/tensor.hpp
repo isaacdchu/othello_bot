@@ -6,6 +6,7 @@
 #include <string>
 #include <sstream>
 #include <cstddef>
+#include <memory>
 
 class Tensor {
 private:
@@ -232,6 +233,20 @@ public:
 
     const std::vector<float>& data() const {
         return data_;
+    }
+
+    static Tensor stack(const std::vector<Tensor>& tensors) {
+        std::vector<std::size_t> new_shape = tensors[0].shape();
+        new_shape.insert(new_shape.begin(), tensors.size());
+        Tensor result(new_shape);
+        std::size_t offset = 0;
+        for (const Tensor& tensor : tensors) {
+            for (std::size_t i = 0; i < tensor.size(); i++) {
+                result.at(offset + i) = tensor.at(i);
+            }
+            offset += tensor.size();
+        }
+        return result;
     }
 };
 
