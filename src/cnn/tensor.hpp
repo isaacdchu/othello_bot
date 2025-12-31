@@ -46,8 +46,7 @@ public:
     }
 
     Tensor(const Tensor &other)
-        : shape_(other.shape_), strides_(other.strides_), size_(other.size_), data_(other.data_)
-    {
+        : shape_(other.shape_), strides_(other.strides_), size_(other.size_), data_(other.data_) {
     }
 
     Tensor operator+(const Tensor& other) const {
@@ -127,6 +126,10 @@ public:
 
     bool operator==(const Tensor& other) const {
         return shape_ == other.shape_ && data_ == other.data_;
+    }
+
+    void backward() {
+        // Placeholder for backward pass implementation
     }
     
     void reshape(const std::vector<std::size_t>& new_shape) {

@@ -13,11 +13,7 @@ public:
             res += diff * diff;
         }
         res /= static_cast<float>(prediction.size());
-        return Tensor({}, {res});
-    }
-
-    Tensor backward() override {
-        // Implement the backward pass for MSE loss
+        return Tensor({1}, {res});
     }
 };
 

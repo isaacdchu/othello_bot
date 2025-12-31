@@ -28,8 +28,7 @@ int main() {
         optimizer.zero_grad();
         Tensor outputs = model.forward(inputs);
         Tensor loss = criterion.forward(outputs, targets);
-        Tensor grad_loss = criterion.backward();
-        model.backward(grad_loss);
+        loss.backward();
         optimizer.step();
         std::cout << "Batch " << i << ", Loss: " << loss.at(0) << std::endl;
     }
