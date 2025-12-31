@@ -14,6 +14,7 @@ private:
     std::vector<std::size_t> strides_;
     std::size_t size_;
     std::vector<float> data_;
+    std::vector<float> grad_;
 public:
     Tensor(const std::vector<std::size_t>& shape)
         : shape_(shape), strides_(), size_(1), data_() {
@@ -27,10 +28,11 @@ public:
             stride *= shape[i];
         }
         data_.resize(size_, 0.0);
+        grad_.resize(size_, 0.0);
     }
 
-    Tensor(const std::vector<std::size_t>& shape, const std::vector<float>& data)
-        : shape_(shape), strides_(), size_(1), data_(data) {
+    Tensor(const std::vector<std::size_t>& shape, const std::vector<float>& data, const std::vector<float>& grad = {})
+        : shape_(shape), strides_(), size_(1), data_(data), grad_(grad) {
         for (std::size_t dim : shape) {
             size_ *= dim;
         }
@@ -43,10 +45,9 @@ public:
             strides_[i] = stride;
             stride *= shape[i];
         }
-    }
-
-    Tensor(const Tensor &other)
-        : shape_(other.shape_), strides_(other.strides_), size_(other.size_), data_(other.data_) {
+        if (grad_.size() != size_) {
+            grad_.resize(size_, 0.0);
+        }
     }
 
     Tensor operator+(const Tensor& other) const {

@@ -43,5 +43,12 @@ int main() {
         std::cout << "Batch " << i << ", Loss: " << loss.at(0) << std::endl;
     }
     */
+    Tensor t = Tensor({2, 3}, {1, 2, 3, 4, 5, 6});
+    std::cout << "Tensor shape: ";
+    for (auto dim : t.shape()) {
+        std::cout << dim << " ";
+    }
+    std::cout << std::endl;
+    std::cout << "Tensor at (1,0): " << t.at({1,0}) << std::endl;
     return 0;
 }

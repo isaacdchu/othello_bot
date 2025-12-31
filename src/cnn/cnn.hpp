@@ -8,34 +8,33 @@
 #include <cstddef>
 #include <vector>
 #include <functional>
+#include <memory>
 
 class CNN : public Model {
 private:
-    std::vector<Layer> layers_;
+    std::vector<std::unique_ptr<Layer>> layers_;
 public:
     CNN() {
-        layers_ = {
-            DenseLayer({192}, {96}),
-            DenseLayer({96}, {1}),
-        };
+        layers_.emplace_back(std::make_unique<DenseLayer>(std::vector<std::size_t>{192}, std::vector<std::size_t>{96}));
+        layers_.emplace_back(std::make_unique<DenseLayer>(std::vector<std::size_t>{96}, std::vector<std::size_t>{1}));
     }
 
     void train() override {
         for (auto& layer : layers_) {
-            layer.train();
+            layer->train();
         }
     }
 
     void eval() override {
         for (auto& layer : layers_) {
-            layer.eval();
+            layer->eval();
         }
     }
 
     Tensor forward(const Tensor& input) override {
         Tensor result = Tensor(input);
         for (auto& layer : layers_) {
-            result = layer.forward(result);
+            result = layer->forward(result);
         }
         return result;
     }
@@ -43,7 +42,7 @@ public:
     std::vector<std::reference_wrapper<Tensor>> parameters() override {
         std::vector<std::reference_wrapper<Tensor>> params;
         for (auto& layer : layers_) {
-            auto layer_params = layer.parameters();
+            auto layer_params = layer->parameters();
             params.append_range(layer_params);
         }
         return params;
