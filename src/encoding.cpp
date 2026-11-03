@@ -4,15 +4,6 @@
 
 namespace othello_bot::encoding {
 
-namespace {
-
-// the board stores square (row, col) at bit 63 - (row * 8 + col)
-constexpr uint64_t bit(int row, int col) {
-    return 1ULL << (63 - (row * 8 + col));
-}
-
-} // namespace
-
 Planes planes(const othello::board::Board& board) {
     const bool black = board.turn() == othello::Color::BLACK;
     return Planes{
@@ -29,27 +20,10 @@ uint64_t transform(uint64_t bitboard, int sym) {
     if (sym == 0) {
         return bitboard;
     }
-    // TODO: replace with flip / rotate bit tricks if this shows up in profiles
-    uint64_t out = 0;
-    for (int row = 0; row < 8; ++row) {
-        for (int col = 0; col < 8; ++col) {
-            if ((bitboard & bit(row, col)) == 0) {
-                continue;
-            }
-            int r = row;
-            int c = col;
-            if (sym & 4) {
-                c = 7 - c;  // mirror left-right
-            }
-            for (int i = 0; i < (sym & 3); ++i) {
-                const int t = r;  // rotate 90 degrees clockwise
-                r = c;
-                c = 7 - t;
-            }
-            out |= bit(r, c);
-        }
-    }
-    return out;
+    // 1..7 are othello's seven non-identity symmetries, in enum order
+    return othello::board::Board::transform(
+        bitboard, static_cast<othello::board::Board::Symmetry>(sym - 1)
+    );
 }
 
 Planes transform(const Planes& p, int sym) {
@@ -67,7 +41,7 @@ void encode(const Planes& p, std::span<float> out) {
     const uint64_t channels[CHANNELS] = {p.own, p.opp, p.legal};
     for (std::size_t c = 0; c < CHANNELS; ++c) {
         for (int sq = 0; sq < 64; ++sq) {
-            out[c * 64 + sq] = static_cast<float>((channels[c] >> (63 - sq)) & 1);
+            out[sq * CHANNELS + c] = static_cast<float>((channels[c] >> (63 - sq)) & 1);
         }
     }
 }

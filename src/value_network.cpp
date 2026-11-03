@@ -1,6 +1,9 @@
+#include <fstream>
 #include <stdexcept>
+#include <string>
 #include <utility>
 
+#include <othello_bot/files.hpp>
 #include <othello_bot/value_network.hpp>
 
 namespace othello_bot {
@@ -11,6 +14,20 @@ namespace layer = mlfo::layer;
 namespace init = mlfo::initializer;
 
 } // namespace
+
+ValueNetwork::ValueNetwork(
+    std::unique_ptr<mlfo::model::Model<float>> model,
+    std::unique_ptr<mlfo::optimizer::Adam<float>> optimizer,
+    float learning_rate
+) :
+model_(std::move(model)),
+optimizer_(std::move(optimizer)),
+learning_rate_(learning_rate),
+x_(model_->max_batch_size() * encoding::INPUT_SIZE),
+y_(model_->max_batch_size())
+{
+    optimizer_->set_learning_rate(learning_rate_);
+}
 
 ValueNetwork::ValueNetwork(mlfo::model::Model<float>&& model, float learning_rate) :
 model_(std::make_unique<mlfo::model::Model<float>>(std::move(model))),
@@ -28,7 +45,7 @@ ValueNetwork ValueNetwork::create(uint32_t seed, std::size_t batch_size, float l
     auto xavier = std::make_shared<init::Xavier<std::uniform_real_distribution<float>>>(generator);
 
     std::vector<std::unique_ptr<layer::Layer<float>>> layers;
-    // (3, 8, 8) -> (32, 8, 8) x3, 3x3 kernels with padding keep the board size
+    // (8, 8, 3) -> (8, 8, 32) x3, 3x3 kernels with padding keep the board size
     for (int i = 0; i < 3; ++i) {
         layers.push_back(std::make_unique<layer::Conv2DLayer<float>>(32, 3, 3, 1, 1, 1, 1, he));
         layers.push_back(std::make_unique<layer::activation::ReLUActivation<float>>());
@@ -41,7 +58,7 @@ ValueNetwork ValueNetwork::create(uint32_t seed, std::size_t batch_size, float l
     layers.push_back(std::make_unique<layer::activation::TanhActivation<float>>());
 
     mlfo::model::Model<float> model(
-        {encoding::CHANNELS, 8, 8},
+        {8, 8, encoding::CHANNELS},
         std::move(layers),
         std::make_unique<layer::loss::MSELoss<float>>(),
         batch_size
@@ -55,8 +72,58 @@ ValueNetwork ValueNetwork::load(const std::filesystem::path& path, std::size_t b
     return ValueNetwork(mlfo::model::load<float>(path, batch_size), learning_rate);
 }
 
+ValueNetwork ValueNetwork::read_checkpoint(
+    std::istream& is, std::size_t batch_size, float learning_rate
+) {
+    auto checkpoint = mlfo::model::deserialize_checkpoint<float>(is, batch_size);
+    auto* adam = dynamic_cast<mlfo::optimizer::Adam<float>*>(checkpoint.optimizer.get());
+    if (adam == nullptr) {
+        throw std::runtime_error("[ValueNetwork::read_checkpoint] checkpoint was not trained with Adam");
+    }
+    checkpoint.optimizer.release();
+    return ValueNetwork(
+        std::move(checkpoint.model),
+        std::unique_ptr<mlfo::optimizer::Adam<float>>(adam),
+        learning_rate
+    );
+}
+
+void ValueNetwork::write_checkpoint(std::ostream& os) const {
+    mlfo::model::serialize_checkpoint(os, *model_, *optimizer_);
+}
+
+ValueNetwork ValueNetwork::load_checkpoint(
+    const std::filesystem::path& path, std::size_t batch_size, float learning_rate
+) {
+    std::ifstream file(path);
+    if (!file) {
+        throw std::runtime_error("[ValueNetwork::load_checkpoint] could not open " + path.string());
+    }
+    return read_checkpoint(file, batch_size, learning_rate);
+}
+
+ValueNetwork ValueNetwork::load_any(
+    const std::filesystem::path& path, std::size_t batch_size, float learning_rate
+) {
+    if (path.extension() == CHECKPOINT_EXTENSION) {
+        return load_checkpoint(path, batch_size, learning_rate);
+    }
+    return load(path, batch_size, learning_rate);
+}
+
 void ValueNetwork::save(const std::filesystem::path& path) const {
-    model_->save(path);
+    write_atomically(path, [this](const std::filesystem::path& tmp) { model_->save(tmp); });
+}
+
+void ValueNetwork::save_checkpoint(const std::filesystem::path& path) const {
+    write_atomically(path, [this](const std::filesystem::path& tmp) {
+        mlfo::model::save_checkpoint(tmp, *model_, *optimizer_);
+    });
+}
+
+void ValueNetwork::set_learning_rate(float learning_rate) {
+    optimizer_->set_learning_rate(learning_rate);
+    learning_rate_ = learning_rate;
 }
 
 ValueNetwork ValueNetwork::clone() const {

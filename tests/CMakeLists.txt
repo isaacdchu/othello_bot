@@ -7,6 +7,8 @@ FetchContent_Declare(googletest
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
+# gtest gains nothing from LTO and emits spurious warnings under it with mingw
+set_target_properties(gtest gtest_main gmock gmock_main PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF)
 
 include(GoogleTest)
 

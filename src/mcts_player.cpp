@@ -19,11 +19,11 @@ rng_(seed ? *seed : 0)
 }
 
 double MCTSPlayer::black_result(const othello::board::Board& board) {
-    const auto [black, white] = board.score();
-    if (black > white) {
+    const int margin = board.margin();
+    if (margin > 0) {
         return 1.0;
     }
-    if (black < white) {
+    if (margin < 0) {
         return 0.0;
     }
     return 0.5;

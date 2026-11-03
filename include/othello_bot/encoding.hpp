@@ -19,20 +19,22 @@ struct Planes {
     uint64_t legal = 0;
 };
 
-// network input shape: (CHANNELS, 8, 8), one channel per Planes field
+// network input shape: (8, 8, CHANNELS), channels last (mlfo >= 0.4.0), one
+// channel per Planes field
 inline constexpr std::size_t CHANNELS = 3;
 inline constexpr std::size_t INPUT_SIZE = CHANNELS * 64;
 
-// the 8 symmetries of the square: 4 rotations, each optionally mirrored
+// the 8 symmetries of the square: the identity and othello's 7 others
 inline constexpr int SYMMETRIES = 8;
 
 Planes planes(const othello::board::Board& board);
 
-// applies symmetry `sym` (0 = identity) to a bitboard / to every plane
+// applies symmetry `sym` to a bitboard / to every plane: 0 is the identity and
+// 1..7 are othello::board::Board::Symmetry in declaration order (sym - 1)
 uint64_t transform(uint64_t bitboard, int sym);
 Planes transform(const Planes& planes, int sym);
 
-// writes INPUT_SIZE floats, channel-major: out[c * 64 + row * 8 + col]
+// writes INPUT_SIZE floats, channels last: out[(row * 8 + col) * CHANNELS + c]
 // row 0 / col 0 is a1's corner, matching the board's string layout
 void encode(const Planes& planes, std::span<float> out);
 

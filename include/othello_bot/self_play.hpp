@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <deque>
+#include <istream>
+#include <ostream>
 #include <random>
 #include <span>
 #include <vector>
@@ -36,7 +38,7 @@ struct GameConfig {
 // position where the side to move had a choice, labelled as described by
 // config.outcome_weight.
 //
-// TODO: disc margin / 64 instead of win/draw/loss as the result part (smoother signal)
+// TODO: Board::margin() / 64 instead of win/draw/loss as the result part (smoother signal)
 std::vector<Sample> play_game(
     MinimaxPlayer& player,
     const GameConfig& config,
@@ -65,7 +67,20 @@ public:
         return capacity_;
     }
 
-    // TODO: save / load to disk so a run can be resumed
+    // oldest first
+    const std::deque<Sample>& samples() const {
+        return samples_;
+    }
+
+    // Binary format, for a stream opened in binary mode: a "replay_buffer"
+    // line, a line with the sample count, then each sample as own, opp and
+    // legal (uint64_t) and target (float) in native byte order. Not portable
+    // between machines of different endianness.
+    void write(std::ostream& os) const;
+
+    // reads what write() wrote, into a buffer of `capacity`; if the stream
+    // holds more samples than that, the oldest are dropped
+    static ReplayBuffer read(std::istream& is, std::size_t capacity);
 };
 
 struct MatchResult {
@@ -80,13 +95,15 @@ struct MatchResult {
     }
 };
 
-// `games` games of a against b, alternating colours, from a's point of view.
-// `random_opening_plies` random moves start each game so deterministic players
-// don't replay the same game.
+// Plays a against b from `openings` random openings of `random_opening_plies`
+// plies each. Every opening is played twice with the colours swapped, so a
+// lopsided opening counts for both sides equally: 2 * openings games in all,
+// scored from a's point of view. Passing an rng seeded the same way each time
+// replays the same openings, which keeps results comparable across a run.
 MatchResult match(
     othello::player::Player& a,
     othello::player::Player& b,
-    int games,
+    int openings,
     int random_opening_plies,
     std::mt19937_64& rng
 );

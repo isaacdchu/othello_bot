@@ -11,6 +11,23 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 option(OTHELLO_BOT_BUILD_TESTS "Build the othello_bot tests" ON)
+option(OTHELLO_BOT_NATIVE "Release builds: tune for this machine's CPU (-march=native)" ON)
+option(OTHELLO_BOT_LTO "Release builds: enable link-time optimization" ON)
+
+# set before the dependencies are included so othello and mlfo are optimized the same way
+if(OTHELLO_BOT_NATIVE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_compile_options($<$<CONFIG:Release>:-march=native>)
+endif()
+
+if(OTHELLO_BOT_LTO)
+    include(CheckIPOSupported)
+    check_ipo_supported(RESULT othello_bot_ipo_supported OUTPUT othello_bot_ipo_error LANGUAGES CXX)
+    if(othello_bot_ipo_supported)
+        set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
+    else()
+        message(WARNING "LTO not supported, building without it: ${othello_bot_ipo_error}")
+    endif()
+endif()
 
 # provides the othello::othello and mlfo::mlfo targets
 include(cmake/dependencies.cmake)
@@ -27,7 +44,9 @@ add_library(othello_bot STATIC
     src/encoding.cpp
     src/mcts_player.cpp
     src/minimax_player.cpp
+    src/run_state.cpp
     src/self_play.cpp
+    src/train_config.cpp
     src/value_network.cpp
 )
 target_include_directories(othello_bot PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)

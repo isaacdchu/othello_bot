@@ -5,9 +5,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <istream>
 #include <memory>
+#include <ostream>
 #include <random>
 #include <span>
+#include <string_view>
 #include <vector>
 
 #include <mlfo/mlfo.hpp>
@@ -44,6 +47,11 @@ private:
     std::vector<float> x_;
     std::vector<float> y_;
 
+    ValueNetwork(
+        std::unique_ptr<mlfo::model::Model<float>> model,
+        std::unique_ptr<mlfo::optimizer::Adam<float>> optimizer,
+        float learning_rate
+    );
     ValueNetwork(mlfo::model::Model<float>&& model, float learning_rate);
 
 public:
@@ -69,17 +77,59 @@ public:
         float learning_rate = DEFAULT_LEARNING_RATE
     );
 
+    // File formats:
+    //   weights (.mlfo):     architecture and weights, written by save(). Enough
+    //                        to play with, or to start training from scratch.
+    //   checkpoint (.ckpt):  also the optimizer's state (Adam's moments and step
+    //                        count), written by save_checkpoint(), so training
+    //                        continues where it left off.
+    // Both are written to a temporary file and renamed into place, so an
+    // interrupted save leaves the previous file intact.
+    static constexpr std::string_view CHECKPOINT_EXTENSION = ".ckpt";
+
+    // weights only, with a fresh optimizer
     static ValueNetwork load(
         const std::filesystem::path& path,
         std::size_t batch_size,
         float learning_rate = DEFAULT_LEARNING_RATE
     );
 
+    // weights and optimizer state. The learning rate is not taken from the
+    // file: it is set to learning_rate, as the training loop owns its schedule.
+    static ValueNetwork load_checkpoint(
+        const std::filesystem::path& path,
+        std::size_t batch_size,
+        float learning_rate = DEFAULT_LEARNING_RATE
+    );
+
+    // load_checkpoint() for a path ending in CHECKPOINT_EXTENSION, load() otherwise
+    static ValueNetwork load_any(
+        const std::filesystem::path& path,
+        std::size_t batch_size,
+        float learning_rate = DEFAULT_LEARNING_RATE
+    );
+
     void save(const std::filesystem::path& path) const;
+    void save_checkpoint(const std::filesystem::path& path) const;
+
+    // the checkpoint format on a stream, e.g. to embed in a larger file
+    void write_checkpoint(std::ostream& os) const;
+    static ValueNetwork read_checkpoint(
+        std::istream& is,
+        std::size_t batch_size,
+        float learning_rate = DEFAULT_LEARNING_RATE
+    );
 
     // an independent copy with the same weights and a fresh optimizer,
     // e.g. to keep as the "best" network
     ValueNetwork clone() const;
+
+    float learning_rate() const {
+        return learning_rate_;
+    }
+
+    // takes effect from the next train_batch(); Adam's moments are kept
+    void set_learning_rate(float learning_rate);
 
     // overwrites this network's weights with other's (same architecture), in
     // place: no allocation, and heuristics pointing at this network stay valid.
