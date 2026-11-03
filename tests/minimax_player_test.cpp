@@ -81,6 +81,12 @@ void expect_matches_reference(const MinimaxPlayer::Heuristic& h, int max_depth) 
                 if (!std::has_single_bit(board.legal_moves())) {
                     ASSERT_EQ(player.get_move(board), reference_move(board, depth, h))
                         << "depth " << depth << "\n" << board.to_string();
+                    // reference_value is from black's point of view
+                    const double black_value = reference_value(board, depth, h);
+                    const double expected =
+                        board.turn() == othello::Color::BLACK ? black_value : -black_value;
+                    ASSERT_EQ(player.last_value(), expected)
+                        << "depth " << depth << "\n" << board.to_string();
                 }
                 board.make_move(random.get_move(board));
             }
@@ -137,6 +143,31 @@ TEST(MinimaxPlayer, HeuristicsFromSideToMove) {
     const int black_moves = std::popcount(board.legal_moves(othello::Color::BLACK));
     EXPECT_EQ(white_moves, 3);
     EXPECT_EQ(MinimaxPlayer::mobility(board), white_moves - black_moves);
+}
+
+TEST(MinimaxPlayer, LastValueEmptyWithoutSearch) {
+    MinimaxPlayer player(2);
+    EXPECT_FALSE(player.last_value().has_value());
+
+    othello::board::Board board;
+    player.get_move(board);
+    EXPECT_TRUE(player.last_value().has_value());
+
+    // play random games until a position with a single legal move comes up;
+    // get_move skips the search there
+    for (uint64_t seed = 0; seed < 50; ++seed) {
+        othello::player::RandomPlayer random(seed);
+        board = othello::board::Board();
+        while (!board.game_over() && !std::has_single_bit(board.legal_moves())) {
+            board.make_move(random.get_move(board));
+        }
+        if (!board.game_over()) {
+            player.get_move(board);
+            EXPECT_FALSE(player.last_value().has_value());
+            return;
+        }
+    }
+    GTEST_SKIP() << "no forced move found";
 }
 
 TEST(MinimaxPlayer, PruningVisitsFewerNodes) {

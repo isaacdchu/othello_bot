@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <optional>
 
 #include <othello/othello.hpp>
 
@@ -37,6 +38,7 @@ private:
     int depth_;
     Heuristic heuristic_;
     std::size_t nodes_ = 0;
+    std::optional<double> last_value_;
 
 public:
 
@@ -66,6 +68,14 @@ public:
     // nodes visited during the last get_move
     std::size_t nodes() const {
         return nodes_;
+    }
+
+    // value of the position given to the last get_move, from the point of view
+    // of its side to move, on the same scale as the heuristic (finished games
+    // are +-(WIN_SCORE + margin)). Empty before the first call, and when the
+    // last call had a single legal move, since no search was run then.
+    std::optional<double> last_value() const {
+        return last_value_;
     }
 };
 

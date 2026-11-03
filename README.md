@@ -22,7 +22,7 @@ Set `-DOTHELLO_BOT_BUILD_TESTS=OFF` to skip building the tests.
 
 ## Dependencies
 
-`cmake/dependencies.cmake` fetches othello and mlfo at the tags set by `OTHELLO_GIT_TAG` and `MLFO_GIT_TAG` (default `v0.1.0`). To use a different version:
+`cmake/dependencies.cmake` fetches othello and mlfo at the tags set by `OTHELLO_GIT_TAG` and `MLFO_GIT_TAG` (default `latest`, i.e. the newest `v*` tag; `v0.2.0` if the remote can't be reached). To use a different version:
 
 ```sh
 cmake -B build -DOTHELLO_GIT_TAG=v0.2.0 -DMLFO_GIT_TAG=v0.2.0

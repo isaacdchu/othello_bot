@@ -24,14 +24,21 @@ target_compile_options(othello_bot_warnings INTERFACE
 
 # the bot's headers live in include/, its sources in src/; everything here links against this
 add_library(othello_bot STATIC
+    src/encoding.cpp
     src/mcts_player.cpp
     src/minimax_player.cpp
+    src/self_play.cpp
+    src/value_network.cpp
 )
 target_include_directories(othello_bot PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(othello_bot PUBLIC othello::othello mlfo::mlfo PRIVATE othello_bot_warnings)
 
 add_executable(main main.cpp)
 target_link_libraries(main PRIVATE othello_bot othello_bot_warnings)
+
+# self-play training loop for the CNN value network
+add_executable(train train.cpp)
+target_link_libraries(train PRIVATE othello_bot othello_bot_warnings)
 
 if(OTHELLO_BOT_BUILD_TESTS)
     enable_testing()

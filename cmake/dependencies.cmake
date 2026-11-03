@@ -6,7 +6,7 @@ find_package(Git REQUIRED)
 #
 # by default the newest v* tag of each library is looked up at configure time. to pin a
 # version instead, configure with e.g.
-#   cmake -B build -DOTHELLO_GIT_TAG=v0.1.0 -DMLFO_GIT_TAG=v0.1.0
+#   cmake -B build -DOTHELLO_GIT_TAG=v0.2.0 -DMLFO_GIT_TAG=v0.2.0
 #
 # to develop against a local checkout instead of the fetched copy, configure with e.g.
 #   cmake -B build -DFETCHCONTENT_SOURCE_DIR_OTHELLO=../othello -DFETCHCONTENT_SOURCE_DIR_MLFO=../mlfo
@@ -15,7 +15,7 @@ set(OTHELLO_GIT_TAG latest CACHE STRING "Branch, tag or commit of isaacdchu/othe
 set(MLFO_GIT_TAG latest CACHE STRING "Branch, tag or commit of isaacdchu/mlfo to use, or 'latest'")
 
 # fallback used when 'latest' is requested but the remote can't be queried (e.g. offline)
-set(_DEPS_FALLBACK_TAG v0.1.0)
+set(_DEPS_FALLBACK_TAG v0.2.0)
 
 # sets out_var to the highest v* tag on repo (version-sorted, so v0.10.0 > v0.9.0).
 # leaves out_var unchanged if the lookup fails. requires git >= 2.18.

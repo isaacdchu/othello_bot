@@ -109,6 +109,7 @@ uint64_t MinimaxPlayer::get_move(const othello::board::Board& board) {
         throw std::logic_error("[MinimaxPlayer] no legal moves");
     }
     nodes_ = 0;
+    last_value_.reset();
     if (std::has_single_bit(moves)) {
         return moves;
     }
@@ -138,6 +139,9 @@ uint64_t MinimaxPlayer::get_move(const othello::board::Board& board) {
             best_move = move;
         }
     }
+    // beta is infinite at the root, so every child is searched and alpha is
+    // the exact value of the best one
+    last_value_ = alpha;
     return best_move;
 }
 
