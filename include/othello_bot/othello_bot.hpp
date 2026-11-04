@@ -5,6 +5,7 @@
 #include "files.hpp"
 #include "mcts_player.hpp"
 #include "minimax_player.hpp"
+#include "network_player.hpp"
 #include "run_state.hpp"
 #include "self_play.hpp"
 #include "train_config.hpp"

@@ -44,6 +44,7 @@ add_library(othello_bot STATIC
     src/encoding.cpp
     src/mcts_player.cpp
     src/minimax_player.cpp
+    src/network_player.cpp
     src/run_state.cpp
     src/self_play.cpp
     src/train_config.cpp
