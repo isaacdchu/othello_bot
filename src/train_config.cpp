@@ -108,6 +108,8 @@ const std::vector<Field>& fields() {
         OTHELLO_BOT_FIELD("random_opening_plies", game.random_opening_plies),
         OTHELLO_BOT_FIELD("epsilon", game.epsilon),
         OTHELLO_BOT_FIELD("outcome_weight", game.outcome_weight),
+        OTHELLO_BOT_FIELD("margin_weight", game.margin_weight),
+        OTHELLO_BOT_FIELD("threads", threads),
         OTHELLO_BOT_FIELD("buffer_capacity", buffer_capacity),
         OTHELLO_BOT_FIELD("batch_size", batch_size),
         OTHELLO_BOT_FIELD("train_steps_per_iteration", train_steps_per_iteration),
@@ -227,6 +229,10 @@ void TrainConfig::validate() const {
     require(
         game.outcome_weight >= 0.0f && game.outcome_weight <= 1.0f,
         "outcome_weight must be in [0, 1]"
+    );
+    require(
+        game.margin_weight >= 0.0f && game.margin_weight <= 1.0f,
+        "margin_weight must be in [0, 1]"
     );
     require(buffer_capacity > 0, "buffer_capacity must be positive");
     require(batch_size > 0, "batch_size must be positive");

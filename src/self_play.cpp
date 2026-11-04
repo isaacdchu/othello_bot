@@ -1,7 +1,13 @@
+#include <algorithm>
+#include <atomic>
 #include <bit>
+#include <chrono>
+#include <exception>
+#include <mutex>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <thread>
 
 #include <othello_bot/self_play.hpp>
 
@@ -34,6 +40,10 @@ std::vector<Sample> play_game(
     const float lambda = config.outcome_weight;
     if (!(lambda >= 0.0f && lambda <= 1.0f)) {
         throw std::invalid_argument("[self_play::play_game] outcome_weight must be in [0, 1]");
+    }
+    const float mu = config.margin_weight;
+    if (!(mu >= 0.0f && mu <= 1.0f)) {
+        throw std::invalid_argument("[self_play::play_game] margin_weight must be in [0, 1]");
     }
     const bool need_search_value = lambda < 1.0f;
 
@@ -76,7 +86,9 @@ std::vector<Sample> play_game(
     std::vector<Sample> samples;
     samples.reserve(visited.size());
     for (const auto& v : visited) {
-        const float target = lambda * outcome(board, v.side) + (1.0f - lambda) * v.search_value;
+        const float margin = static_cast<float>(v.side == othello::Color::BLACK ? board.margin() : -board.margin()) / 64.0f;
+        const float result = (1.0f - mu) * outcome(board, v.side) + mu * margin;
+        const float target = lambda * result + (1.0f - lambda) * v.search_value;
         samples.push_back({v.planes, target});
     }
     return samples;
@@ -164,6 +176,68 @@ ReplayBuffer ReplayBuffer::read(std::istream& is, std::size_t capacity) {
     return buffer;
 }
 
+MatchResult& MatchResult::operator+=(const MatchResult& other) {
+    wins += other.wins;
+    draws += other.draws;
+    losses += other.losses;
+    margin += other.margin;
+    a_seconds += other.a_seconds;
+    b_seconds += other.b_seconds;
+    a_moves += other.a_moves;
+    b_moves += other.b_moves;
+    return *this;
+}
+
+std::vector<othello::board::Board> random_openings(
+    int count,
+    int random_opening_plies,
+    std::mt19937_64& rng
+) {
+    std::vector<othello::board::Board> openings;
+    openings.reserve(static_cast<std::size_t>(std::max(count, 0)));
+    for (int o = 0; o < count; ++o) {
+        othello::board::Board opening;
+        for (int ply = 0; ply < random_opening_plies && !opening.game_over(); ++ply) {
+            opening.make_move(random_move(opening.legal_moves(), rng));
+        }
+        openings.push_back(opening);
+    }
+    return openings;
+}
+
+MatchResult play_pair(
+    othello::player::Player& a,
+    othello::player::Player& b,
+    const othello::board::Board& opening
+) {
+    using Clock = std::chrono::steady_clock;
+    MatchResult result;
+    for (const bool a_black : {true, false}) {
+        othello::board::Board board = opening;
+        while (!board.game_over()) {
+            const bool a_to_move = (board.turn() == othello::Color::BLACK) == a_black;
+            auto& player = a_to_move ? a : b;
+            const auto start = Clock::now();
+            const uint64_t move = player.get_move(board);
+            const double seconds = std::chrono::duration<double>(Clock::now() - start).count();
+            (a_to_move ? result.a_seconds : result.b_seconds) += seconds;
+            ++(a_to_move ? result.a_moves : result.b_moves);
+            board.make_move(move);
+        }
+        const othello::Color a_color = a_black ? othello::Color::BLACK : othello::Color::WHITE;
+        const float r = outcome(board, a_color);
+        result.margin += a_black ? board.margin() : -board.margin();
+        if (r > 0) {
+            ++result.wins;
+        } else if (r < 0) {
+            ++result.losses;
+        } else {
+            ++result.draws;
+        }
+    }
+    return result;
+}
+
 MatchResult match(
     othello::player::Player& a,
     othello::player::Player& b,
@@ -172,29 +246,53 @@ MatchResult match(
     std::mt19937_64& rng
 ) {
     MatchResult result;
-    for (int o = 0; o < openings; ++o) {
-        othello::board::Board opening;
-        for (int ply = 0; ply < random_opening_plies && !opening.game_over(); ++ply) {
-            opening.make_move(random_move(opening.legal_moves(), rng));
-        }
-        for (const bool a_black : {true, false}) {
-            othello::board::Board board = opening;
-            while (!board.game_over()) {
-                const bool black_to_move = board.turn() == othello::Color::BLACK;
-                auto& player = (black_to_move == a_black) ? a : b;
-                board.make_move(player.get_move(board));
-            }
-            const float r = outcome(board, a_black ? othello::Color::BLACK : othello::Color::WHITE);
-            if (r > 0) {
-                ++result.wins;
-            } else if (r < 0) {
-                ++result.losses;
-            } else {
-                ++result.draws;
-            }
-        }
+    for (const auto& opening : random_openings(openings, random_opening_plies, rng)) {
+        result += play_pair(a, b, opening);
     }
     return result;
+}
+
+MatchResult parallel_match(
+    const PlayerFactory& make_a,
+    const PlayerFactory& make_b,
+    std::span<const othello::board::Board> openings,
+    int threads
+) {
+    const int workers = std::clamp(threads, 1, std::max<int>(1, static_cast<int>(openings.size())));
+    std::atomic<std::size_t> next{0};
+    std::mutex mutex;
+    MatchResult total;
+    std::exception_ptr error;
+    auto work = [&] {
+        try {
+            auto a = make_a();
+            auto b = make_b();
+            MatchResult local;
+            for (std::size_t i; (i = next.fetch_add(1)) < openings.size();) {
+                local += play_pair(*a, *b, openings[i]);
+            }
+            std::lock_guard lock(mutex);
+            total += local;
+        } catch (...) {
+            std::lock_guard lock(mutex);
+            if (!error) {
+                error = std::current_exception();
+            }
+            // stop the other workers early
+            next = openings.size();
+        }
+    };
+    {
+        std::vector<std::jthread> pool;
+        for (int t = 1; t < workers; ++t) {
+            pool.emplace_back(work);
+        }
+        work();
+    }
+    if (error) {
+        std::rethrow_exception(error);
+    }
+    return total;
 }
 
 } // namespace othello_bot::self_play

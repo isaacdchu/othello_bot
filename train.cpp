@@ -9,13 +9,15 @@
 //
 // Each iteration:
 //   1. generate: the latest network plays games against itself through
-//      MinimaxPlayer, and every position is labelled with a blend of the
-//      game's result and the search's value for it (outcome_weight)
+//      MinimaxPlayer, on `threads` threads, and every position is labelled
+//      with a blend of the game's result (win/draw/loss and disc margin, see
+//      margin_weight) and the search's value for it (outcome_weight)
 //   2. train: Adam on random batches from a replay buffer of recent positions,
 //      at the learning rate the schedule gives this iteration (lr_schedule)
 //   3. evaluate (every evaluate_every iterations, and after the last one):
 //      play mobility minimax at each baseline depth, from the same paired
-//      openings every time, so scores are comparable across the run
+//      openings every time, so scores are comparable across the run. For a
+//      bigger evaluation of a finished model, see evaluate.cpp.
 //   4. checkpoint
 //
 // Everything a run writes goes to run_dir:
@@ -40,19 +42,25 @@
 // weights and Adam's state, or from a weights file (.mlfo), which starts a
 // fresh optimizer. Either way, the replay buffer and iteration count start over.
 
+#include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cstddef>
 #include <exception>
+#include <functional>
 #include <filesystem>
 #include <format>
 #include <fstream>
 #include <iostream>
+#include <memory>
+#include <mutex>
 #include <optional>
 #include <print>
 #include <random>
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <vector>
 
 #include <othello_bot/othello_bot.hpp>
@@ -219,36 +227,88 @@ int run(TrainConfig config, bool resume) {
         );
     }
 
-    // the players hold heuristics pointing at `net`, which stays put from here on
-    MinimaxPlayer self_play_player(config.self_play_depth, net.heuristic(), config.table_bits);
-    MinimaxPlayer candidate(config.eval_depth, net.heuristic(), config.table_bits);
-    std::vector<MinimaxPlayer> baselines;
-    baselines.reserve(config.baseline_depths.size());
-    for (const int depth : config.baseline_depths) {
-        baselines.emplace_back(depth, MinimaxPlayer::mobility, config.table_bits);
+    const std::size_t threads = config.threads > 0
+        ? config.threads
+        : std::max<std::size_t>(1, std::thread::hardware_concurrency());
+    std::println("{} threads", threads);
+
+    // one self-play worker per thread, each with its own copy of the network
+    // (refreshed every iteration) and its own search
+    struct Worker {
+        std::unique_ptr<ValueNetwork> net;
+        std::unique_ptr<MinimaxPlayer> player;
+    };
+    std::vector<Worker> workers;
+    workers.reserve(threads);
+    for (std::size_t t = 0; t < threads; ++t) {
+        auto copy = std::make_unique<ValueNetwork>(net.clone());
+        auto player = std::make_unique<MinimaxPlayer>(
+            config.self_play_depth, copy->heuristic(), config.table_bits
+        );
+        workers.push_back({std::move(copy), std::move(player)});
     }
+    // runs body(worker, index) for every index below count, spread over the workers
+    auto parallel_for = [&](std::size_t count, auto body) {
+        std::atomic<std::size_t> next{0};
+        std::exception_ptr error;
+        std::mutex error_mutex;
+        auto work = [&](Worker& worker) {
+            try {
+                for (std::size_t i; (i = next.fetch_add(1)) < count;) {
+                    body(worker, i);
+                }
+            } catch (...) {
+                std::lock_guard lock(error_mutex);
+                if (!error) {
+                    error = std::current_exception();
+                }
+                next = count;
+            }
+        };
+        {
+            std::vector<std::jthread> pool;
+            for (std::size_t t = 1; t < workers.size(); ++t) {
+                pool.emplace_back(work, std::ref(workers[t]));
+            }
+            work(workers[0]);
+        }
+        if (error) {
+            std::rethrow_exception(error);
+        }
+    };
 
     for (std::size_t iteration = first_iteration; iteration <= config.iterations; ++iteration) {
-        // Transposition tables keep best-move hints from earlier searches, which
-        // can break ties between equal moves differently. Starting every
-        // iteration from empty tables keeps an iteration's games a function of
-        // what resume.state holds, so a resumed run matches an uninterrupted one.
-        self_play_player.clear_table();
-        candidate.clear_table();
-        for (auto& baseline : baselines) {
-            baseline.clear_table();
-        }
-
-        // 1. generate
+        // 1. generate. Every game gets its own seed, drawn in order from the
+        // run's rng, and an empty transposition table: tables keep best-move
+        // hints between searches, which can break ties between equal moves
+        // differently. That keeps a game a function of its seed and the
+        // network alone, so neither the thread count nor resuming changes it.
         const auto generate_start = Clock::now();
-        const std::size_t evaluations_before = net.evaluations();
+        std::size_t evaluations_before = 0;
+        for (auto& worker : workers) {
+            worker.net->copy_weights_from(net);
+            evaluations_before += worker.net->evaluations();
+        }
+        std::vector<uint64_t> seeds(config.games_per_iteration);
+        for (auto& seed : seeds) {
+            seed = rng();
+        }
+        std::vector<std::vector<othello_bot::Sample>> games(config.games_per_iteration);
+        parallel_for(games.size(), [&](Worker& worker, std::size_t g) {
+            worker.player->clear_table();
+            std::mt19937_64 game_rng(seeds[g]);
+            games[g] = self_play::play_game(*worker.player, config.game, game_rng);
+        });
         std::size_t new_samples = 0;
-        for (std::size_t g = 0; g < config.games_per_iteration; ++g) {
-            const auto samples = self_play::play_game(self_play_player, config.game, rng);
+        for (const auto& samples : games) {
             buffer.add(samples);
             new_samples += samples.size();
         }
-        const std::size_t evaluations = net.evaluations() - evaluations_before;
+        std::size_t evaluations = 0;
+        for (const auto& worker : workers) {
+            evaluations += worker.net->evaluations();
+        }
+        evaluations -= evaluations_before;
         const double generate_seconds = seconds_since(generate_start);
 
         // 2. train
@@ -275,26 +335,39 @@ int run(TrainConfig config, bool resume) {
             generate_seconds, train_seconds, loss, evaluations, learning_rate
         ));
 
-        // 3. evaluate
+        // 3. evaluate, on every thread: each gets its own copy of the network
         const bool last = iteration == config.iterations;
         if ((iteration % config.evaluate_every == 0 || last) && config.eval_openings > 0) {
-            for (std::size_t i = 0; i < baselines.size(); ++i) {
-                // same seed every evaluation: the same openings each time
-                std::mt19937_64 eval_rng(config.seed ^ 0x9e3779b97f4a7c15ULL);
-                const auto start = Clock::now();
-                const auto r = self_play::match(
-                    candidate, baselines[i], config.eval_openings,
-                    config.eval_random_opening_plies, eval_rng
+            // same seed every evaluation: the same openings each time
+            std::mt19937_64 eval_rng(config.seed ^ 0x9e3779b97f4a7c15ULL);
+            const auto openings = self_play::random_openings(
+                config.eval_openings, config.eval_random_opening_plies, eval_rng
+            );
+            std::mutex clone_mutex;
+            const self_play::PlayerFactory make_candidate = [&] {
+                std::lock_guard lock(clone_mutex);
+                return std::make_unique<othello_bot::NetworkPlayer>(
+                    net.clone(), config.eval_depth, config.table_bits
                 );
-                const std::string opponent = std::format("mobility_d{}", config.baseline_depths[i]);
-                const int games = r.wins + r.draws + r.losses;
+            };
+            for (const int depth : config.baseline_depths) {
+                const auto start = Clock::now();
+                const auto r = self_play::parallel_match(
+                    make_candidate,
+                    [&] {
+                        return std::make_unique<MinimaxPlayer>(depth, MinimaxPlayer::mobility, config.table_bits);
+                    },
+                    openings, static_cast<int>(threads)
+                );
+                const std::string opponent = std::format("mobility_d{}", depth);
                 std::println(
-                    "  vs {}: {}-{}-{} ({:.1f}%) in {:.1f}s",
-                    opponent, r.wins, r.draws, r.losses, 100 * r.score(), seconds_since(start)
+                    "  vs {}: {}-{}-{} ({:.1f}%), mean margin {:+.1f} in {:.1f}s",
+                    opponent, r.wins, r.draws, r.losses, 100 * r.score(),
+                    static_cast<double>(r.margin) / r.games(), seconds_since(start)
                 );
                 evals.row(std::format(
                     "{},{},{},{},{},{},{:.4f}",
-                    iteration, opponent, games, r.wins, r.draws, r.losses, r.score()
+                    iteration, opponent, r.games(), r.wins, r.draws, r.losses, r.score()
                 ));
             }
         }

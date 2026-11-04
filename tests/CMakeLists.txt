@@ -7,8 +7,18 @@ FetchContent_Declare(googletest
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
-# gtest gains nothing from LTO and emits spurious warnings under it with mingw
-set_target_properties(gtest gtest_main gmock gmock_main PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF)
+# gtest gains nothing from LTO. the per-config property must be cleared too, since
+# CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE sets it and it overrides the generic one
+set_target_properties(gtest gtest_main gmock gmock_main PROPERTIES
+    INTERPROCEDURAL_OPTIMIZATION OFF
+    INTERPROCEDURAL_OPTIMIZATION_RELEASE OFF
+)
+# mingw gcc doesn't support the visibility attribute gtest marks its API with, so every
+# translation unit including gtest warns. defining GTEST_API_ empty skips it (PUBLIC so
+# the test sources get it too); gtest is linked statically, so nothing is lost
+if(MINGW)
+    target_compile_definitions(gtest PUBLIC GTEST_API_=)
+endif()
 
 include(GoogleTest)
 

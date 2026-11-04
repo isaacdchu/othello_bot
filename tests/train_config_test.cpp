@@ -1,4 +1,6 @@
+#include <bit>
 #include <cstdint>
+#include <memory>
 #include <filesystem>
 #include <fstream>
 #include <random>
@@ -28,6 +30,14 @@ public:
     uint64_t get_move(const othello::board::Board& board) override {
         const uint64_t moves = board.legal_moves();
         return moves & -moves;
+    }
+};
+
+// always plays its highest legal move: deterministic and stateless
+class LastMovePlayer : public othello::player::Player {
+public:
+    uint64_t get_move(const othello::board::Board& board) override {
+        return uint64_t{1} << (63 - std::countl_zero(board.legal_moves()));
     }
 };
 
@@ -234,4 +244,37 @@ TEST(Match, SameSeedSameOpenings) {
     // and a real search beats random from the same openings
     std::mt19937_64 rng3(42);
     EXPECT_GT(othello_bot::self_play::match(strong, weak, 5, 6, rng3).score(), 0.5);
+}
+
+TEST(Match, ParallelMatchesSerial) {
+    // deterministic, stateless players: every thread count plays the same games
+    std::mt19937_64 rng(7);
+    FirstMovePlayer first;
+    LastMovePlayer last;
+    const auto serial = othello_bot::self_play::match(first, last, 6, 4, rng);
+    std::mt19937_64 rng2(7);
+    const auto openings = othello_bot::self_play::random_openings(6, 4, rng2);
+    for (const int threads : {1, 4}) {
+        const auto r = othello_bot::self_play::parallel_match(
+            [] { return std::make_unique<FirstMovePlayer>(); },
+            [] { return std::make_unique<LastMovePlayer>(); },
+            openings, threads
+        );
+        EXPECT_EQ(r.games(), 12);
+        EXPECT_EQ(r.wins, serial.wins);
+        EXPECT_EQ(r.draws, serial.draws);
+        EXPECT_EQ(r.margin, serial.margin);
+        EXPECT_GT(r.a_moves, 0);
+        EXPECT_GT(r.b_moves, 0);
+    }
+}
+
+TEST(TrainConfig, ThreadsAndMarginWeight) {
+    TrainConfig c;
+    c.set("threads", "4");
+    c.set("margin_weight", "0.25");
+    EXPECT_EQ(c.threads, 4u);
+    EXPECT_EQ(c.game.margin_weight, 0.25f);
+    c.set("margin_weight", "2");
+    EXPECT_THROW(c.validate(), std::invalid_argument);
 }

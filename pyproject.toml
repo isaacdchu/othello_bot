@@ -1,0 +1,42 @@
+[project]
+name = "othello-gui"
+version = "0.1.0"
+description = "Play Othello against othello_bot's minimax, MCTS and network players"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+othello-gui = "othello_gui.app:main"
+
+[build-system]
+requires = ["scikit-build-core>=0.10", "nanobind>=2.4"]
+build-backend = "scikit_build_core.build"
+
+[tool.scikit-build]
+minimum-version = "build-system.requires"
+# keep the CMake build (and the fetched othello / mlfo) between rebuilds
+build-dir = "build/python/{wheel_tag}"
+build.targets = ["_othello_bot"]
+wheel.packages = ["python/othello_gui"]
+cmake.build-type = "Release"
+
+[tool.scikit-build.cmake.define]
+OTHELLO_BOT_BUILD_PYTHON = "ON"
+OTHELLO_BOT_BUILD_TESTS = "OFF"
+
+# this project builds with mingw gcc on windows (it needs C++23), not MSVC
+[[tool.scikit-build.overrides]]
+if.platform-system = "^win32"
+cmake.args = ["-G", "MinGW Makefiles"]
+
+[tool.uv]
+# rebuild the extension when the C++ changes
+cache-keys = [
+    { file = "pyproject.toml" },
+    { file = "CMakeLists.txt" },
+    { file = "cmake/**" },
+    { file = "include/**" },
+    { file = "src/**" },
+    { file = "python/CMakeLists.txt" },
+    { file = "python/bindings.cpp" },
+]

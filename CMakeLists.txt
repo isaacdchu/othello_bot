@@ -13,6 +13,7 @@ endif()
 option(OTHELLO_BOT_BUILD_TESTS "Build the othello_bot tests" ON)
 option(OTHELLO_BOT_NATIVE "Release builds: tune for this machine's CPU (-march=native)" ON)
 option(OTHELLO_BOT_LTO "Release builds: enable link-time optimization" ON)
+option(OTHELLO_BOT_BUILD_PYTHON "Build the nanobind Python extension used by the GUI" OFF)
 
 # set before the dependencies are included so othello and mlfo are optimized the same way
 if(OTHELLO_BOT_NATIVE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
@@ -24,6 +25,15 @@ if(OTHELLO_BOT_LTO)
     check_ipo_supported(RESULT othello_bot_ipo_supported OUTPUT othello_bot_ipo_error LANGUAGES CXX)
     if(othello_bot_ipo_supported)
         set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
+        # gcc's lto-wrapper runs its parallel LTRANS jobs through $MAKE (default "make"),
+        # which mingw usually lacks, so it falls back to serial and warns. point MAKE at
+        # a make that exists for every link step
+        if(MINGW AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT CMAKE_CXX_LINKER_LAUNCHER)
+            find_program(OTHELLO_BOT_LTO_MAKE NAMES mingw32-make make)
+            if(OTHELLO_BOT_LTO_MAKE)
+                set(CMAKE_CXX_LINKER_LAUNCHER ${CMAKE_COMMAND} -E env MAKE=${OTHELLO_BOT_LTO_MAKE})
+            endif()
+        endif()
     else()
         message(WARNING "LTO not supported, building without it: ${othello_bot_ipo_error}")
     endif()
@@ -52,6 +62,8 @@ add_library(othello_bot STATIC
 )
 target_include_directories(othello_bot PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(othello_bot PUBLIC othello::othello mlfo::mlfo PRIVATE othello_bot_warnings)
+# linked into the Python extension, a shared library, on platforms that need PIC
+set_target_properties(othello_bot PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_executable(main main.cpp)
 target_link_libraries(main PRIVATE othello_bot othello_bot_warnings)
@@ -59,6 +71,15 @@ target_link_libraries(main PRIVATE othello_bot othello_bot_warnings)
 # self-play training loop for the CNN value network
 add_executable(train train.cpp)
 target_link_libraries(train PRIVATE othello_bot othello_bot_warnings)
+
+# plays a trained network against mobility minimax baselines, on every core
+add_executable(evaluate evaluate.cpp)
+target_link_libraries(evaluate PRIVATE othello_bot othello_bot_warnings)
+
+# the Python extension used by the GUI (see pyproject.toml); built by `uv sync`
+if(OTHELLO_BOT_BUILD_PYTHON)
+    add_subdirectory(python)
+endif()
 
 if(OTHELLO_BOT_BUILD_TESTS)
     enable_testing()

@@ -27,8 +27,14 @@ struct TrainConfig {
     std::size_t games_per_iteration = 32;
     // keep this small: every leaf is a forward pass of the network
     int self_play_depth = 2;
-    // random_opening_plies, epsilon and outcome_weight (lambda, constant for the run)
+    // random_opening_plies, epsilon, outcome_weight (lambda, constant for the
+    // run) and margin_weight
     self_play::GameConfig game{};
+    // threads that play self-play and evaluation games; 0 uses every hardware
+    // thread. Each game has its own seed drawn in order from the run's rng and
+    // starts from an empty transposition table, so the games played, and so the
+    // whole run, are the same for any thread count.
+    std::size_t threads = 0;
 
     // training
     std::size_t buffer_capacity = 200'000;

@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
     std::unique_ptr<othello::player::Player> black;
     std::unique_ptr<othello::player::Player> white;
     if (argc == 1) {
-        black = std::make_unique<othello_bot::MCTSPlayer>(20000);
+        black = std::make_unique<othello_bot::MinimaxPlayer>(11, othello_bot::MinimaxPlayer::mobility);
         white = std::make_unique<othello_bot::MinimaxPlayer>(8, othello_bot::MinimaxPlayer::mobility);
     } else {
         int depth = 4;
@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
             }
         }
         try {
-            black = std::make_unique<othello_bot::MinimaxPlayer>(10, othello_bot::MinimaxPlayer::mobility);
+            black = std::make_unique<othello::player::HumanPlayer>();
             white = othello_bot::NetworkPlayer::load(argv[1], depth);
         } catch (const std::exception& e) {
             std::println(std::cerr, "error: could not load {}: {}", argv[1], e.what());

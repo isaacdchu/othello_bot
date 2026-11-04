@@ -6,3 +6,7 @@ build/
 # training run outputs
 runs/
 *.log
+
+# python
+.venv/
+__pycache__/

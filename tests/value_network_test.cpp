@@ -303,6 +303,32 @@ TEST(SelfPlay, BlendedTargetsMixResultAndSearch) {
     EXPECT_TRUE(any_search_differs);
 }
 
+TEST(SelfPlay, MarginWeightBlendsInDiscMargin) {
+    auto net = ValueNetwork::create(0, 1);
+    MinimaxPlayer player(1, net.heuristic());
+    othello_bot::self_play::GameConfig config;
+    auto play = [&](float mu) {
+        config.margin_weight = mu;
+        std::mt19937_64 rng(5);
+        return othello_bot::self_play::play_game(player, config, rng);
+    };
+    const auto wdl = play(0.0f);
+    const auto margin = play(1.0f);
+    const auto mixed = play(0.25f);
+    ASSERT_EQ(wdl.size(), margin.size());
+    ASSERT_EQ(wdl.size(), mixed.size());
+    for (std::size_t i = 0; i < wdl.size(); ++i) {
+        // a pure margin target is margin / 64, with the winner's sign
+        EXPECT_LE(std::abs(margin[i].target), 1.0f);
+        EXPECT_EQ(margin[i].target * 64.0f, std::round(margin[i].target * 64.0f));
+        EXPECT_TRUE(wdl[i].target == 0.0f || (margin[i].target > 0) == (wdl[i].target > 0));
+        EXPECT_FLOAT_EQ(mixed[i].target, 0.75f * wdl[i].target + 0.25f * margin[i].target);
+    }
+    config.margin_weight = -0.1f;
+    std::mt19937_64 rng(0);
+    EXPECT_THROW(othello_bot::self_play::play_game(player, config, rng), std::invalid_argument);
+}
+
 TEST(SelfPlay, RejectsBadOutcomeWeight) {
     auto net = ValueNetwork::create(0, 1);
     MinimaxPlayer player(1, net.heuristic());

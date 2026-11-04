@@ -1,0 +1,32 @@
+# Run v2, built on what run 20261104 showed (3200 depth-2 games on one core,
+# pure win/loss targets with a rising loss, constant lr, scores swinging
+# 36-66% against mobility d4 between evaluations):
+#   - warm start from run 20261104's final weights and Adam state
+#   - depth-4 self-play on every core, 11.5k games (3.6x as many, 2 plies deeper)
+#   - lower-noise targets: 30% depth-4 search value, and a quarter of the
+#     result part from the disc margin
+#   - cosine lr decay so the last iterations fine-tune
+#   - evaluated against mobility minimax at depth 8 and 11
+# Run from the repository root: ./build/train --config configs/v2.txt
+init_model = runs/20261104-000240/latest.ckpt
+iterations = 60
+games_per_iteration = 192
+self_play_depth = 4
+random_opening_plies = 8
+epsilon = 0.05
+outcome_weight = 0.7
+margin_weight = 0.25
+threads = 0
+buffer_capacity = 300000
+batch_size = 128
+train_steps_per_iteration = 600
+learning_rate = 0.001
+lr_schedule = cosine
+lr_min = 2e-05
+evaluate_every = 10
+eval_depth = 4
+baseline_depths = 8,11
+eval_openings = 16
+eval_random_opening_plies = 4
+checkpoint_every = 5
+run_dir = runs/20261104-v2
