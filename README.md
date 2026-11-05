@@ -5,7 +5,7 @@ An Othello bot written in C++23, built on [othello](https://github.com/isaacdchu
 ## Requirements
 
 - CMake 3.25+
-- A C++23 compiler (GCC, Clang or MSVC)
+- A C++23 compiler (GCC)
 - Git and network access on first configure, since dependencies are fetched with `FetchContent`
 
 ## Build and test
