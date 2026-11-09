@@ -27,6 +27,12 @@ Run the game with `./build/main`.
 
 `train` plays self-play and evaluation games on every core (`--threads N` to limit it); the games, and so the run, are the same for any thread count. `evaluate` plays a model against mobility minimax at each baseline depth from paired random openings and reports score, mean disc margin and seconds per move for each side. Pass `mobility_dN` as the model to compare two baseline depths.
 
+```sh
+./build/benchmark configs/benchmark.txt benchmark.csv
+```
+
+`benchmark` plays the players defined in a config file (MCTS, alpha-beta with a built-in heuristic, or alpha-beta with a trained network) against each other and writes one CSV row per game: both players and their parameters, final discs, winner, average and max seconds per move for each side, and every move of the game. See `benchmark.cpp` for the config format.
+
 Set `-DOTHELLO_BOT_BUILD_TESTS=OFF` to skip building the tests.
 
 ## GUI

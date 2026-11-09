@@ -1,0 +1,28 @@
+# Benchmark config for ./build/benchmark configs/benchmark.txt benchmark.csv
+# (see benchmark.cpp for every setting). Run from the repository root so the
+# model path resolves.
+
+trials = 5            # each matchup plays 5 openings x 2 colours = 10 games
+opening_plies = 4     # random moves before the players take over
+threads = 1           # >1 is faster but makes the move times noisier
+seed = 0
+
+# MCTS at increasing playout counts
+player mcts_1k   = mcts iterations=1000
+player mcts_10k  = mcts iterations=10000
+
+# alpha-beta pruning with the mobility heuristic at increasing depths
+player ab_d2 = alphabeta depth=2 heuristic=mobility
+player ab_d4 = alphabeta depth=4 heuristic=mobility
+player ab_d6 = alphabeta depth=6 heuristic=mobility
+player ab_d8 = alphabeta depth=8 heuristic=mobility
+
+# alpha-beta pruning with the trained value network as heuristic
+player net_d1 = network depth=1 model=models/latest.ckpt
+player net_d2 = network depth=2 model=models/latest.ckpt
+player net_d4 = network depth=4 model=models/latest.ckpt
+
+# without match lines every pair plays (round robin). To run only some
+# matchups, list them instead, e.g.
+#   match = net_d4 ab_d8
+#   match = net_d2 mcts_10k

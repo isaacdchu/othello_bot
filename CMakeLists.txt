@@ -76,6 +76,10 @@ target_link_libraries(train PRIVATE othello_bot othello_bot_warnings)
 add_executable(evaluate evaluate.cpp)
 target_link_libraries(evaluate PRIVATE othello_bot othello_bot_warnings)
 
+# plays configured players against each other and writes every game to a CSV
+add_executable(benchmark benchmark.cpp)
+target_link_libraries(benchmark PRIVATE othello_bot othello_bot_warnings)
+
 # the Python extension used by the GUI (see pyproject.toml); built by `uv sync`
 if(OTHELLO_BOT_BUILD_PYTHON)
     add_subdirectory(python)

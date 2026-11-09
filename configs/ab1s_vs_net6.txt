@@ -1,0 +1,10 @@
+# time-matched: mobility alpha-beta gets 1 s per move (about what net_d6 used in
+# ab6_vs_net6), searching as deep as it can in that time by iterative deepening
+# ./build/benchmark configs/ab1s_vs_net6.txt ab1s_vs_net6.csv
+trials = 100          # 100 openings x 2 colours = 200 games
+opening_plies = 4
+threads = 0           # every core; per-move times are a bit noisier this way
+seed = 0              # same openings as ab6_vs_net6
+
+player ab_1s  = alphabeta depth=60 heuristic=mobility time_limit_ms=1000
+player net_d6 = network depth=6 model=models/latest.ckpt

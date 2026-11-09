@@ -7,6 +7,9 @@ build/
 runs/
 *.log
 
+# benchmark outputs
+*.csv
+
 # python
 .venv/
 __pycache__/

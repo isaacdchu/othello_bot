@@ -1,0 +1,9 @@
+# alpha-beta with mobility vs alpha-beta with the trained network, both at depth 6
+# ./build/benchmark configs/ab6_vs_net6.txt ab6_vs_net6.csv
+trials = 100          # 100 openings x 2 colours = 200 games
+opening_plies = 4
+threads = 0           # every core; per-move times are a bit noisier this way
+seed = 0
+
+player ab_d6  = alphabeta depth=6 heuristic=mobility
+player net_d6 = network depth=6 model=models/latest.ckpt

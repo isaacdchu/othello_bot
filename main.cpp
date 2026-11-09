@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
             }
         }
         try {
-            black = std::make_unique<othello::player::HumanPlayer>();
+            black = std::make_unique<othello_bot::MinimaxPlayer>(6, othello_bot::MinimaxPlayer::mobility);
             white = othello_bot::NetworkPlayer::load(argv[1], depth);
         } catch (const std::exception& e) {
             std::println(std::cerr, "error: could not load {}: {}", argv[1], e.what());
